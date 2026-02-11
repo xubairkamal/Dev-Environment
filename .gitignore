@@ -1,23 +1,43 @@
-# Virtual Environment (Sab se bari ghalti)
-venv/
-env/
-
-# Python Cache
+# --- Python Specific ---
 __pycache__/
 *.py[cod]
 *$py.class
+*.so
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+.venv
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Database
+# --- Django Specific ---
+*.log
+local_settings.py
 db.sqlite3
-*.db-journal
+db.sqlite3-journal
+media/
+staticfiles/
 
-# Libraries/Plugins (Inhein GitHub par nahi hona chahiye)
-static/plugins/
-static/dist/
-static/custom_plugins/
+# --- Database (Based on your project structure) ---
+EnterpriseDB
+*.mdf
+*.ldf
 
-# VS Code
+# --- IDEs / Editors ---
 .vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
 
-# Project Structure Temp File
-project_structure.txt
+# --- OS generated files ---
+Thumbs.db
+desktop.ini
+
+# --- Environment Secrets ---
+.env
