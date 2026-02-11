@@ -1,0 +1,362 @@
+{% extends base_template %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'core_app/css/dataTables.bootstrap5.min.css' %}">
+
+<style>
+    /* Grid Styling */
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0;
+        margin-left: 2px;
+    }
+
+    .dataTables_filter input {
+        border-radius: 20px;
+        padding: 5px 15px;
+        border: 1px solid #dee2e6;
+        outline: none;
+    }
+
+    .card-body.p-0 .dataTables_wrapper {
+        padding: 1.25rem;
+    }
+
+    .table th,
+    .table td {
+        vertical-align: middle;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+        transition: background-color 0.2s ease;
+    }
+
+    /* Rights Matrix Styling */
+    .rights-table th {
+        background: #f8f9fa;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .chk-right {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+</style>
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="fw-bold mb-0"><i class="bi bi-people-fill text-primary"></i> User Management</h3>
+            <p class="text-muted small mb-0">Manage system users and access levels.</p>
+        </div>
+        <button class="btn btn-success shadow-sm d-flex align-items-center gap-2" onclick="openAddModal()">
+            <i class="bi bi-plus-lg"></i> <span>Add New User</span>
+        </button>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="userGrid" class="table table-hover align-middle mb-0 w-100">
+                    <thead class="bg-light text-secondary">
+                        <tr>
+                            <th class="ps-4" style="width: 80px;">ID</th>
+                            <th>Username</th>
+                            <th>Full Name</th>
+                            <th>Status</th>
+                            <th class="text-center pe-4" style="width: 200px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTableBody">
+                        {% for user in users %}
+                        <tr>
+                            <td class="ps-4 text-muted">{{ user.userid }}</td>
+                            <td><span class="fw-bold text-dark">{{ user.username }}</span></td>
+                            <td>{{ user.fullname }}</td>
+                            <td>
+                                <span
+                                    class="badge rounded-pill {% if user.statusid == 1 %}bg-success{% else %}bg-secondary{% endif %}">
+                                    {{ user.statusname }}
+                                </span>
+                            </td>
+                            <td class="text-center pe-4">
+                                <div class="btn-group shadow-sm">
+                                    <button class="btn btn-sm btn-white border" title="User Rights"
+                                        onclick="openRightsModal('{{ user.userid }}', '{{ user.fullname }}')">
+                                        <i class="bi bi-shield-lock-fill text-info"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-white border" title="Edit User"
+                                        onclick="openEditModal('{{ user.userid }}', '{{ user.username }}', '{{ user.fullname }}', '{{ user.statusid }}', '{{ user.statusname }}', '{{ user.version_hex }}')">
+                                        <i class="bi bi-pencil-square text-primary"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-white border" title="Delete User"
+                                        onclick="openDeleteModal('{{ user.userid }}', '{{ user.version_hex }}', '{{ user.serviceid }}')">
+                                        <i class="bi bi-trash text-danger"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center py-5">
+                                <i class="bi bi-inbox fs-1 text-muted d-block mb-2"></i>
+                                <span class="text-muted">No users found.</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="rightsModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title"><i class="bi bi-shield-shaded me-2"></i> User Access Rights: <span
+                        id="rights_display_name" class="fw-bold text-warning"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <input type="hidden" id="rights_userID">
+                <div id="rights_matrix_container" style="max-height: 500px; overflow-y: auto;">
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-primary" role="status"></div>
+                        <p class="mt-2 text-muted">Fetching rights matrix...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary px-4" id="btnSaveRights" onclick="saveUserRights()">
+                    <i class="bi bi-save me-1"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'core_app/add_user_modal.html' %}
+{% include 'core_app/edit_user_modal.html' %}
+
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-sm modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-body p-4 text-center">
+                <i class="bi bi-exclamation-circle text-danger display-4 mb-3 d-block"></i>
+                <h5 class="fw-bold">Are you sure?</h5>
+                <p class="text-muted small">This action cannot be undone.</p>
+                <input type="hidden" id="delete_userID">
+                <input type="hidden" id="delete_versionHex">
+                <input type="hidden" id="delete_serviceID">
+                <div class="d-flex justify-content-center gap-2 mt-4">
+                    <button type="button" class="btn btn-light border px-4" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger px-4" id="btnConfirmDelete"
+                        onclick="confirmDelete()">Delete</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'core_app/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'core_app/js/dataTables.bootstrap5.min.js' %}"></script>
+
+<script>
+    const ajaxHeaders = {
+        'X-CSRFToken': '{{ csrf_token }}',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest'
+    };
+
+    function formatHex(hex) {
+        if (!hex || hex === 'None') return "";
+        hex = hex.trim();
+        return hex.startsWith('0x') ? hex : '0x' + hex;
+    }
+
+    function initUserDataTable() {
+        if ($.fn.DataTable.isDataTable('#userGrid')) { $('#userGrid').DataTable().destroy(); }
+        $('#userGrid').DataTable({
+            "paging": true, "pageLength": 10,
+            "language": {
+                "search": "",
+                "searchPlaceholder": "Search users...",
+                "paginate": {
+                    "next": '<i class="bi bi-chevron-right"></i>',
+                    "previous": '<i class="bi bi-chevron-left"></i>'
+                }
+            },
+            "columnDefs": [{ "orderable": false, "targets": 4 }]
+        });
+    }
+
+    function initSelect2Lookup(selector) {
+        $(selector).each(function () {
+            const $el = $(this);
+            const lookupType = $el.data('type');
+            $el.select2({
+                theme: 'bootstrap-5',
+                dropdownParent: $el.closest('.modal'),
+                ajax: {
+                    url: "{% url 'core_app:get_lookup_ajax' %}",
+                    data: function (params) { return { q: params.term, type: lookupType }; },
+                    processResults: function (data) { return { results: data.results }; }
+                }
+            });
+        });
+    }
+
+    $(document).ready(function () {
+        initUserDataTable();
+        initSelect2Lookup('.select2-lookup');
+    });
+
+    // --- Rights Logic ---
+    function openRightsModal(userId, fullName) {
+        $('#rights_userID').val(userId);
+        $('#rights_display_name').text(fullName);
+        $('#rights_matrix_container').html('<div class="text-center py-5"><div class="spinner-border text-primary"></div><p class="mt-2">Loading...</p></div>');
+        $('#rightsModal').modal('show');
+
+        $.ajax({
+            url: "{% url 'core_app:get_user_rights' %}",
+            type: 'GET',
+            data: { user_id: userId },
+            success: function (res) { $('#rights_matrix_container').html(res); },
+            error: function () { $('#rights_matrix_container').html('<div class="alert alert-danger">Error loading rights.</div>'); }
+        });
+    }
+
+    function saveUserRights() {
+        const userId = $('#rights_userID').val();
+        if (!userId) { alert("User ID not found"); return; }
+
+        const rightsData = [];
+        $('.rights-row').each(function () {
+            const row = $(this);
+            rightsData.push({
+                "rightid": parseInt(row.attr('data-right-id')) || 0,
+                "menuid": parseInt(row.attr('data-menu-id')) || 0,
+                "canview": row.find('.chk-view').is(':checked'),
+                "cancreate": row.find('.chk-create').is(':checked'),
+                "canedit": row.find('.chk-edit').is(':checked'),
+                "candelete": row.find('.chk-delete').is(':checked')
+            });
+        });
+
+        const payload = { "user_id": parseInt(userId), "rights": rightsData };
+        performAction("{% url 'core_app:save_user_rights' %}", payload, '#btnSaveRights', '#rightsModal');
+    }
+
+    // --- CRUD Actions ---
+    function openAddModal() {
+        // 1. Form reset karein
+        $('#addUserForm')[0].reset();
+
+        // 2. Select2 dropdown ko "Entered" status (ID: 1) par set karein
+        let $select = $('#add_ddlStatus');
+
+        // Pehlay purana data saaf karein aur naya option add karke select karein
+        $select.empty().append(new Option("Entered", 1, true, true)).trigger('change');
+
+        // 3. Modal show karein
+        $('#addUserModal').modal('show');
+    }
+
+    function createUser() {
+        const payload = {
+            username: $('#add_txtUsername').val(),
+            full_name: $('#add_txtFullName').val(),
+            password: $('#add_txtPassword').val(),
+            status_id: parseInt($('#add_ddlStatus').val()) || 1
+        };
+        performAction("{% url 'core_app:add_user' %}", payload, '#btnCreateUser', '#addUserModal');
+    }
+
+    function openEditModal(id, username, fullName, statusID, statusName, version) {
+        $('#edit_txtUserID').val(id);
+        $('#edit_txtUsername').val(username);
+        $('#edit_txtFullName').val(fullName);
+        $('#edit_txtVersionHex').val(version);
+
+        // Populate Select2 Status Dropdown
+        let $select = $('#edit_ddlStatus');
+        $select.empty().append(new Option(statusName, statusID, true, true)).trigger('change');
+
+        $('#editUserModal').modal('show');
+    }
+
+    function updateUser() {
+        const payload = {
+            user_id: parseInt($('#edit_txtUserID').val()),
+            username: $('#edit_txtUsername').val(),
+            full_name: $('#edit_txtFullName').val(),
+            password: $('#edit_txtPassword').val() || "",
+            status_id: parseInt($('#edit_ddlStatus').val()),
+            version_hex: formatHex($('#edit_txtVersionHex').val())
+        };
+        performAction("{% url 'core_app:update_user' %}", payload, '#btnUpdateUser', '#editUserModal');
+    }
+
+    function openDeleteModal(id, versionHex, serviceId) {
+        $('#delete_userID').val(id);
+        $('#delete_versionHex').val(versionHex);
+        $('#delete_serviceID').val(serviceId);
+        $('#deleteConfirmModal').modal('show');
+    }
+
+    function confirmDelete() {
+        const payload = {
+            user_id: parseInt($('#delete_userID').val()),
+            service_id: parseInt($('#delete_serviceID').val()) || 1,
+            version_hex: formatHex($('#delete_versionHex').val())
+        };
+        performAction("{% url 'core_app:delete_user' %}", payload, '#btnConfirmDelete', '#deleteConfirmModal');
+    }
+
+    function performAction(url, payload, btnId, modalId) {
+        const $btn = $(btnId);
+        const originalText = $btn.html();
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span>');
+
+        $.ajax({
+            url: url,
+            type: 'POST',
+            data: JSON.stringify(payload),
+            headers: ajaxHeaders,
+            success: function (res) {
+                if (res.status === 'success' || res.success) {
+                    if (modalId) $(modalId).modal('hide');
+                    reloadUserTable();
+                } else {
+                    alert("Error: " + (res.message || 'Action failed'));
+                    $btn.prop('disabled', false).html(originalText);
+                }
+            },
+            error: function () {
+                alert("Server error.");
+                $btn.prop('disabled', false).html(originalText);
+            }
+        });
+    }
+
+    function reloadUserTable() {
+        $.ajax({
+            url: "{% url 'core_app:user_list' %}",
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            success: function (html) {
+                $('#main-content-area').html(html);
+                initUserDataTable();
+                initSelect2Lookup('.select2-lookup'); // Re-init on reload
+            }
+        });
+    }
+</script>
+{% endblock %}

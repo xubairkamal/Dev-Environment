@@ -1,0 +1,62 @@
+/* core_app/static/core_app/css/style.css */
+
+/* Sidebar fixed width and professional dark theme */
+.sidebar {
+    min-width: 280px;
+    max-width: 280px;
+    background-color: #1a1d20;
+    color: #ffffff;
+    min-height: 100vh;
+    transition: all 0.3s;
+}
+
+/* Sidebar brand/logo area */
+.sidebar-header {
+    padding: 20px;
+    background: #141619;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+/* Navigation links styling */
+.nav-link {
+    color: #adb5bd;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    border-radius: 4px;
+    margin: 4px 0;
+    text-decoration: none;
+    transition: 0.2s;
+}
+
+.nav-link:hover {
+    color: #ffffff;
+    background-color: #2c3136;
+}
+
+.nav-link i {
+    width: 25px;
+    font-size: 1.1rem;
+}
+
+/* Active menu item styling */
+.nav-link.active {
+    background-color: #0d6efd;
+    color: #ffffff !important;
+}
+
+/* Main content area adjustment */
+.main-wrapper {
+    flex: 1;
+    background-color: #f8f9fa;
+    min-height: 100vh;
+}
+
+/* Top Navbar styling */
+.top-navbar {
+    background-color: #ffffff;
+    border-bottom: 1px solid #dee2e6;
+    padding: 15px 30px;
+}

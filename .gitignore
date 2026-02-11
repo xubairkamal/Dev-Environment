@@ -1,0 +1,23 @@
+# Virtual Environment (Sab se bari ghalti)
+venv/
+env/
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+db.sqlite3
+*.db-journal
+
+# Libraries/Plugins (Inhein GitHub par nahi hona chahiye)
+static/plugins/
+static/dist/
+static/custom_plugins/
+
+# VS Code
+.vscode/
+
+# Project Structure Temp File
+project_structure.txt

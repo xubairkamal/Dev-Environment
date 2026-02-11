@@ -1,0 +1,203 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | Enterprise System</title>
+    <link rel="stylesheet" href="{% static 'core_app/css/bootstrap.min.css' %}">
+    <link rel="stylesheet" href="{% static 'core_app/css/select2.min.css' %}">
+    <link rel="stylesheet" href="{% static 'core_app/css/select2-bootstrap-5-theme.min.css' %}">
+    <link rel="stylesheet" href="{% static 'core_app/bootstrap-icons/bootstrap-icons.css' %}">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+        }
+
+        .login-card {
+            background: #ffffff;
+            border-radius: 20px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 400px;
+            padding: 40px;
+            border: none;
+        }
+
+        .login-icon-box {
+            background: #764ba2;
+            color: white;
+            width: 60px;
+            height: 60px;
+            border-radius: 15px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            margin-bottom: 15px;
+        }
+
+        .btn-login {
+            background-color: #764ba2;
+            border-color: #764ba2;
+            color: white;
+            padding: 12px;
+            font-weight: 600;
+            border-radius: 8px;
+            width: 100%;
+            margin-top: 10px;
+            transition: 0.3s;
+        }
+
+        /* Select2 and Input Group Alignment Fix */
+        .input-group>.select2-container--bootstrap-5 {
+            flex: 1 1 auto;
+            width: 1% !important;
+        }
+
+        .input-group>.select2-container--bootstrap-5 .select2-selection {
+            border-top-left-radius: 0 !important;
+            border-bottom-left-radius: 0 !important;
+            height: 100%;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+        }
+
+        .input-group-text {
+            background-color: #f8f9fa;
+            border-right: none;
+            color: #6c757d;
+        }
+
+        .form-control:focus,
+        .select2-container--bootstrap-5.select2-container--focus .select2-selection {
+            border-color: #764ba2;
+            box-shadow: 0 0 0 0.25rem rgba(118, 75, 162, 0.25);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-card">
+        <div class="text-center mb-4">
+            <div class="login-icon-box"><i class="bi bi-shield-lock-fill"></i></div>
+            <h4 class="fw-bold">Enterprise Login</h4>
+        </div>
+
+        {% if messages %}
+        {% for message in messages %}
+        <div class="alert alert-danger py-2 small">{{ message }}</div>
+        {% endfor %}
+        {% endif %}
+
+        <form method="POST" id="loginForm" onsubmit="return startLoading()">
+            {% csrf_token %}
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary">Select Service</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-building"></i></span>
+                    <select name="service_id" id="ddlService" class="form-select" required>
+                        <option value=""></option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small fw-bold text-secondary">Username</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person"></i></span>
+                    <input type="text" id="txtUsername" name="username" class="form-control"
+                        placeholder="Enter username" required>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label small fw-bold text-secondary">Password</label>
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-key"></i></span>
+                    <input type="password" id="txtPassword" name="password" class="form-control" placeholder="••••••••"
+                        required>
+                </div>
+            </div>
+
+            <button type="submit" id="btnLogin" class="btn btn-login shadow-sm">
+                <span id="btnText">Sign In</span>
+                <span id="btnSpinner" class="spinner-border spinner-border-sm d-none"></span>
+            </button>
+        </form>
+    </div>
+
+    <script src="{% static 'core_app/js/jquery-3.6.0.js' %}"></script>
+    <script src="{% static 'core_app/js/bootstrap.bundle.js' %}"></script>
+    <script src="{% static 'core_app/js/select2.js' %}"></script>
+
+    <script>
+        $(document).ready(function () {
+            const $serviceDDL = $('#ddlService');
+
+            $serviceDDL.select2({
+                theme: 'bootstrap-5',
+                placeholder: 'Search for a service...',
+                allowClear: true,
+                selectOnClose: true,
+                dropdownParent: $('.login-card'),
+                ajax: {
+                    url: "{% url 'core_app:get_lookup_ajax' %}",
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return { q: params.term || '', type: 'Service' };
+                    },
+                    processResults: function (data) {
+                        return { results: data.results };
+                    },
+                    cache: true
+                }
+            });
+
+            // FIXED: Dropdown open hone par search box par focus karna
+            $serviceDDL.on('select2:open', function () {
+                // Select2 ka search input dhoond kar usay focus aur typing ready karna
+                const searchField = document.querySelector('.select2-search__field');
+                if (searchField) {
+                    searchField.focus();
+                }
+            });
+
+            // Page load par automatically open aur focus
+            setTimeout(() => {
+                $serviceDDL.select2('open');
+            }, 300);
+
+            // Service select hone ke baad focus Username par jaye
+            $serviceDDL.on('select2:select', function (e) {
+                $('#txtUsername').focus();
+            });
+        });
+
+        function startLoading() {
+            const serviceVal = $('#ddlService').val();
+            if (!serviceVal || serviceVal === "") {
+                alert("Please select a service before signing in.");
+                $('#ddlService').select2('open');
+                return false;
+            }
+
+            $('#btnText').addClass('d-none');
+            $('#btnSpinner').removeClass('d-none');
+            $('#btnLogin').addClass('disabled').attr('disabled', true);
+            return true;
+        }
+    </script>
+</body>
+
+</html>

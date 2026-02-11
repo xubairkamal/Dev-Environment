@@ -1,0 +1,101 @@
+<table class="table table-sm table-bordered rights-table mb-0">
+    <thead class="table-light sticky-top">
+        <tr class="small text-uppercase">
+            <th class="ps-3" style="min-width: 200px;">
+                <div class="d-flex align-items-center">
+                    <input type="checkbox" class="form-check-input border-primary me-2" id="masterSelectAll">
+                    <span>Menu Name</span>
+                </div>
+            </th>
+            <th class="text-center">
+                <input type="checkbox" class="form-check-input border-primary" id="selectAllView"
+                    onclick="toggleColumn('chk-view', this.checked)">
+                <div class="mt-1">View</div>
+            </th>
+            <th class="text-center">
+                <input type="checkbox" class="form-check-input border-primary" id="selectAllCreate"
+                    onclick="toggleColumn('chk-create', this.checked)">
+                <div class="mt-1">Create</div>
+            </th>
+            <th class="text-center">
+                <input type="checkbox" class="form-check-input border-primary" id="selectAllEdit"
+                    onclick="toggleColumn('chk-edit', this.checked)">
+                <div class="mt-1">Edit</div>
+            </th>
+            <th class="text-center">
+                <input type="checkbox" class="form-check-input border-primary" id="selectAllDelete"
+                    onclick="toggleColumn('chk-delete', this.checked)">
+                <div class="mt-1">Delete</div>
+            </th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for r in rights %}
+        <tr class="rights-row" data-menu-id="{{ r.menuid }}" data-right-id="{{ r.rightid|default:0 }}">
+            <td class="ps-3">
+                <div class="d-flex align-items-center">
+                    <input type="checkbox" class="form-check-input me-2 chk-row-master">
+                    <span class="fw-bold text-muted small">{{ r.menuname }}</span>
+                </div>
+            </td>
+            <td class="text-center">
+                <input type="checkbox" class="form-check-input chk-right chk-view" {{ r.canview|yesno:"checked," }}>
+            </td>
+            <td class="text-center">
+                <input type="checkbox" class="form-check-input chk-right chk-create" {{ r.cancreate|yesno:"checked," }}>
+            </td>
+            <td class="text-center">
+                <input type="checkbox" class="form-check-input chk-right chk-edit" {{ r.canedit|yesno:"checked," }}>
+            </td>
+            <td class="text-center">
+                <input type="checkbox" class="form-check-input chk-right chk-delete" {{ r.candelete|yesno:"checked," }}>
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" class="text-center py-4 text-muted small">No menus available.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    // Column Selection Logic
+    function toggleColumn(className, isChecked) {
+        $(`.${className}`).prop('checked', isChecked);
+        $('.rights-row').each(function () {
+            const checkedInRow = $(this).find('.chk-right:checked').length;
+            $(this).find('.chk-row-master').prop('checked', checkedInRow === 4);
+        });
+        syncAllStatus();
+    }
+
+    // Row Selection Logic
+    $(document).off('change', '.chk-row-master').on('change', '.chk-row-master', function () {
+        $(this).closest('tr').find('.chk-right').prop('checked', this.checked);
+        syncAllStatus();
+    });
+
+    $(document).off('change', '#masterSelectAll').on('change', '#masterSelectAll', function () {
+        const isChecked = this.checked;
+        $('.chk-right, .chk-row-master, #selectAllView, #selectAllCreate, #selectAllEdit, #selectAllDelete').prop('checked', isChecked);
+    });
+
+    $(document).off('change', '.chk-right').on('change', '.chk-right', function () {
+        const $row = $(this).closest('tr');
+        const checkedInRow = $row.find('.chk-right:checked').length;
+        $row.find('.chk-row-master').prop('checked', checkedInRow === 4);
+        syncAllStatus();
+    });
+
+    function syncAllStatus() {
+        ['view', 'create', 'edit', 'delete'].forEach(type => {
+            const total = $(`.chk-${type}`).length;
+            const checked = $(`.chk-${type}:checked`).length;
+            $(`#selectAll${type.charAt(0).toUpperCase() + type.slice(1)}`).prop('checked', total > 0 && total === checked);
+        });
+        const totalAll = $('.chk-right').length;
+        const checkedAll = $('.chk-right:checked').length;
+        $('#masterSelectAll').prop('checked', totalAll > 0 && totalAll === checkedAll);
+    }
+</script>
