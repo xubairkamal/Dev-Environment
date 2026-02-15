@@ -35,7 +35,7 @@ def user_list_view(request):
 
     return render(
         request,
-        "core_app/user_list.html",
+        "core_app/users/user_list.html",
         {"users": users_data, "base_template": base_template},
     )
 
@@ -124,7 +124,9 @@ def get_user_rights_matrix_ajax(request):
     try:
         rights_data = UserBLL.get_user_rights_matrix(user_id)
         return render(
-            request, "core_app/_rights_matrix_partial.html", {"rights": rights_data}
+            request,
+            "core_app/users/_rights_matrix_partial.html",
+            {"rights": rights_data},
         )
     except Exception as e:
         return JsonResponse(
@@ -160,5 +162,5 @@ def user_rights_view(request):
     is_ajax_req = is_ajax(request)
     base_template = "core_app/blank.html" if is_ajax_req else "core_app/base.html"
     return render(
-        request, "core_app/user_rights.html", {"base_template": base_template}
+        request, "core_app/users/user_rights.html", {"base_template": base_template}
     )

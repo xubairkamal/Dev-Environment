@@ -1,0 +1,185 @@
+{% extends base_template %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'core_app/css/dataTables.bootstrap5.min.css' %}">
+
+<div class="container-fluid mt-2">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="fw-bold mb-0"><i class="bi bi-cash-stack text-success"></i> Cash Book</h3>
+            <p class="text-muted small mb-0">Manage and view your daily cash transactions.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text border-end-0 bg-transparent text-muted">From</span>
+                <input type="date" id="txtFromDate" class="form-control border-start-0" value="{{ from_date }}">
+            </div>
+            <div class="input-group input-group-sm">
+                <span class="input-group-text border-end-0 bg-transparent text-muted">To</span>
+                <input type="date" id="txtToDate" class="form-control border-start-0" value="{{ to_date }}">
+            </div>
+            <button class="btn btn-primary btn-sm px-3" onclick="reloadCashBook()" title="Filter Records">
+                <i class="bi bi-search"></i>
+            </button>
+            <button class="btn btn-success btn-sm shadow-sm px-3" onclick="openAddModal()">
+                <i class="bi bi-plus-lg"></i> Add New
+            </button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="cashGrid" class="table table-hover align-middle mb-0 w-100">
+                    <thead class="bg-light text-secondary">
+                        <tr>
+                            <th class="ps-4">Date</th>
+                            <th>Voucher Info</th>
+                            <th>Account Name</th>
+                            <th>Department</th>
+                            <th>Description</th>
+                            <th class="text-end">Amount (Rs.)</th>
+                            <th class="text-center pe-4">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tr in transactions %}
+                        <tr>
+                            <td class="ps-4 text-nowrap">{{ tr.DTTRDATE|default:"-" }}</td>
+
+                            <td>
+                                <span class="badge bg-info-subtle text-info border border-info-subtle">
+                                    {{ tr.VCVTACRN|default:"VC" }}-{{ tr.VCTRNMBR|default:"0" }}
+                                </span>
+                            </td>
+
+                            <td><span class="fw-bold text-dark">{{ tr.VCACNAME|default:"N/A" }}</span></td>
+
+                            <td><span class="badge bg-light text-secondary border">{{ tr.VCDPDESC|default:"General"
+                                    }}</span></td>
+
+                            <td class="small text-muted">{{ tr.VCTRDESC|default:""|truncatechars:45 }}</td>
+
+                            <td class="text-end fw-bold text-success">{{ tr.MNTRAMNT|default:"0.00" }}</td>
+
+                            <td class="text-center pe-4">
+                                <div class="btn-group">
+                                    <button class="btn btn-sm btn-outline-primary"
+                                        onclick="editTransaction('{{ tr.INTRCODE }}')" title="Edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary"
+                                        onclick="printVoucher('{{ tr.INTRCODE }}')" title="Print">
+                                        <i class="bi bi-printer"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted italic">
+                                <i class="bi bi-folder2-open fs-1 d-block mb-2 text-light"></i>
+                                No records found for the selected period.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="transactionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="modalTitle"><i class="bi bi-plus-circle me-2"></i> New Cash Entry</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-success" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Fetching entry form...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'core_app/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'core_app/js/dataTables.bootstrap5.min.js' %}"></script>
+
+<script>
+    // Silencing DataTables error alerts and moving them to console
+    $.fn.dataTable.ext.errMode = 'none';
+
+    function initDataTable() {
+        if ($.fn.DataTable.isDataTable('#cashGrid')) {
+            $('#cashGrid').DataTable().clear().destroy();
+        }
+
+        $('#cashGrid').DataTable({
+            "paging": true,
+            "ordering": true,
+            "info": true,
+            "pageLength": 10,
+            "autoWidth": false,
+            "responsive": true,
+            "language": {
+                "search": "Quick Filter:",
+                "paginate": { "next": "»", "previous": "«" }
+            },
+            "columnDefs": [
+                { "orderable": false, "targets": 6 }, // Actions index
+                { "className": "ps-4", "targets": 0 },
+                { "className": "text-end fw-bold", "targets": 5 }
+            ]
+        });
+    }
+
+    $(document).ready(function () {
+        initDataTable();
+    });
+
+    function reloadCashBook() {
+        const from = $('#txtFromDate').val();
+        const to = $('#txtToDate').val();
+        const btn = $('button[onclick="reloadCashBook()"]');
+
+        btn.html('<span class="spinner-border spinner-border-sm"></span>').prop('disabled', true);
+
+        $.ajax({
+            url: "{% url 'core_app:cash_book_list' %}",
+            data: { from_date: from, to_date: to },
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            success: function (html) {
+                // Important: Only replace the content area if the server returned HTML
+                $('#main-content-area').html(html);
+                initDataTable();
+            },
+            error: function (xhr) {
+                console.error("Reload Error:", xhr.responseText);
+                alert("Failed to fetch data.");
+                btn.html('<i class="bi bi-search"></i>').prop('disabled', false);
+            }
+        });
+    }
+
+    function openAddModal() {
+        $('#transactionModal').modal('show');
+    }
+
+    function editTransaction(id) {
+        console.log("Edit ID:", id);
+    }
+
+    function printVoucher(id) {
+        alert("Printing Voucher for ID: " + id);
+    }
+</script>
+{% endblock %}

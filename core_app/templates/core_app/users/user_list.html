@@ -142,8 +142,8 @@
     </div>
 </div>
 
-{% include 'core_app/add_user_modal.html' %}
-{% include 'core_app/edit_user_modal.html' %}
+{% include 'core_app/users/add_user_modal.html' %}
+{% include 'core_app/users/edit_user_modal.html' %}
 
 <div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-sm modal-dialog-centered">
@@ -226,7 +226,7 @@
         $('#rightsModal').modal('show');
 
         $.ajax({
-            url: "{% url 'core_app:get_user_rights' %}",
+            url: "{% url 'core_app:get_user_rights_matrix_ajax' %}",
             type: 'GET',
             data: { user_id: userId },
             success: function (res) { $('#rights_matrix_container').html(res); },
@@ -257,16 +257,9 @@
 
     // --- CRUD Actions ---
     function openAddModal() {
-        // 1. Form reset karein
         $('#addUserForm')[0].reset();
-
-        // 2. Select2 dropdown ko "Entered" status (ID: 1) par set karein
         let $select = $('#add_ddlStatus');
-
-        // Pehlay purana data saaf karein aur naya option add karke select karein
         $select.empty().append(new Option("Entered", 1, true, true)).trigger('change');
-
-        // 3. Modal show karein
         $('#addUserModal').modal('show');
     }
 
@@ -286,7 +279,6 @@
         $('#edit_txtFullName').val(fullName);
         $('#edit_txtVersionHex').val(version);
 
-        // Populate Select2 Status Dropdown
         let $select = $('#edit_ddlStatus');
         $select.empty().append(new Option(statusName, statusID, true, true)).trigger('change');
 
@@ -354,7 +346,7 @@
             success: function (html) {
                 $('#main-content-area').html(html);
                 initUserDataTable();
-                initSelect2Lookup('.select2-lookup'); // Re-init on reload
+                initSelect2Lookup('.select2-lookup');
             }
         });
     }
