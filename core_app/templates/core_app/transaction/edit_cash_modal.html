@@ -1,0 +1,99 @@
+<div class="modal fade" id="editCashModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil-square me-2"></i>Edit Transaction
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+            </div>
+
+            <div class="modal-body p-4">
+                <form id="editCashForm">
+                    <input type="hidden" id="edit_txtTransID">
+                    <input type="hidden" id="edit_txtVersionHex">
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Transaction Date</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-calendar-event"></i></span>
+                                <input type="date" id="edit_cash_date" class="form-control" required>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Account / Ledger</label>
+                            <select id="edit_cash_account" class="form-select select2-lookup" data-type="CASH_ACCOUNTS"
+                                data-placeholder="Search Account..." required>
+                                <option value=""></option>
+                            </select>
+                            <div class="form-text small text-muted">Update the account for this entry.</div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold text-primary">Rs.</span>
+                                <input type="number" id="edit_cash_amount" class="form-control fw-bold"
+                                    placeholder="0.00" step="0.01" min="1" required>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Description / Remarks</label>
+                            <textarea id="edit_cash_desc" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-footer bg-light border-top-0">
+                <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary px-4 d-flex align-items-center gap-2" id="btnUpdateCash"
+                    onclick="updateCashEntry()">
+                    <i class="bi bi-save"></i> <span>Update Transaction</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    /**
+     * JS function to populate this modal (Called from cash_book.html)
+     */
+    function openEditCashModal(id, accountId, accountName, amount, description, version) {
+        // IDs setting
+        $('#edit_txtTransID').val(id);
+        $('#edit_txtVersionHex').val(version);
+
+        // Basic fields
+        $('#edit_cash_amount').val(amount);
+        $('#edit_cash_desc').val(description);
+
+        // Select2 Dynamic Set (Pattern: User Status)
+        let $select = $('#edit_cash_account');
+        $select.empty().append(new Option(accountName, accountId, true, true)).trigger('change');
+
+        $('#editCashModal').modal('show');
+    }
+
+    /**
+     * JS function to collect data and call BLL via View
+     */
+    function updateCashEntry() {
+        const payload = {
+            trans_id: parseInt($('#edit_txtTransID').val()),
+            date: $('#edit_cash_date').val(),
+            account_id: $('#edit_cash_account').val(),
+            amount: $('#edit_cash_amount').val(),
+            description: $('#edit_cash_desc').val(),
+            version_hex: formatHex($('#edit_txtVersionHex').val())
+        };
+
+        // Calling the generic performCashAction from cash_book.html
+        performCashAction("{% url 'core_app:update_transaction' %}", payload, '#btnUpdateCash', '#editCashModal');
+    }
+</script>

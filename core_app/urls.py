@@ -15,23 +15,43 @@ urlpatterns = [
     path("setup/users/add/", user_views.add_user_view, name="add_user"),
     path("setup/users/update/", user_views.update_user_view, name="update_user"),
     path("setup/users/delete/", user_views.delete_user_view, name="delete_user"),
-    # User Rights Paths - Names matched with user_list.html
+    # User Rights Paths
     path("setup/users/rights/", user_views.user_rights_view, name="user_rights"),
     path(
         "setup/users/rights/get-matrix/",
         user_views.get_user_rights_matrix_ajax,
-        name="get_user_rights_matrix_ajax",  # Yahan _ajax add kiya hai
+        name="get_user_rights_matrix_ajax",
     ),
     path(
         "setup/users/rights/save/",
         user_views.save_user_rights_ajax,
         name="save_user_rights",
     ),
-    # --- Transaction ---
+    # --- Transaction (Cash Book) ---
     path(
         "transaction/cash-book/",
         transaction_views.cash_book_view,
-        name="cash_book_list",
+        name="cash_book",  # 'cash_book' name reload logic ke liye zarori hai
+    ),
+    path(
+        "transaction/cash-book/add/",
+        transaction_views.add_cash_entry_view,
+        name="add_cash_entry",
+    ),
+    path(
+        "transaction/cash-book/update/",
+        transaction_views.update_transaction_view,
+        name="update_transaction",
+    ),
+    path(
+        "transaction/cash-book/delete/",
+        transaction_views.delete_transaction_view,
+        name="delete_transaction",
+    ),
+    path(
+        "transaction/lookup/",
+        transaction_views.get_transaction_lookup_ajax,
+        name="get_transaction_lookup_ajax",
     ),
     # --- Lookups & Utilities ---
     path("common/lookup/", user_views.get_lookup_ajax, name="get_lookup_ajax"),

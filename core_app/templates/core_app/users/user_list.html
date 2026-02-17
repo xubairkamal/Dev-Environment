@@ -79,7 +79,7 @@
                             <td>{{ user.fullname }}</td>
                             <td>
                                 <span
-                                    class="badge rounded-pill {% if user.statusid == 1 %}bg-success{% else %}bg-secondary{% endif %}">
+                                    class="badge rounded-pill {% if user.statusid == 10 %}bg-success{% else %}bg-secondary{% endif %}">
                                     {{ user.statusname }}
                                 </span>
                             </td>
@@ -165,9 +165,6 @@
     </div>
 </div>
 
-<script src="{% static 'core_app/js/jquery.dataTables.min.js' %}"></script>
-<script src="{% static 'core_app/js/dataTables.bootstrap5.min.js' %}"></script>
-
 <script>
     const ajaxHeaders = {
         'X-CSRFToken': '{{ csrf_token }}',
@@ -181,10 +178,17 @@
         return hex.startsWith('0x') ? hex : '0x' + hex;
     }
 
-    function initUserDataTable() {
-        if ($.fn.DataTable.isDataTable('#userGrid')) { $('#userGrid').DataTable().destroy(); }
+    // --- Global Functions for AJAX Re-init ---
+    window.initUserDataTable = function () {
+        if ($.fn.DataTable.isDataTable('#userGrid')) {
+            $('#userGrid').DataTable().destroy();
+        }
         $('#userGrid').DataTable({
-            "paging": true, "pageLength": 10,
+            "stateSave": true,  // Ye user ki pagination, search aur sorting ko browser mein save rakhta hay
+            "paging": true,
+            "pageLength": 10,
+            "responsive": true,
+            "order": [[0, "desc"]],
             "language": {
                 "search": "",
                 "searchPlaceholder": "Search users...",
@@ -197,7 +201,7 @@
         });
     }
 
-    function initSelect2Lookup(selector) {
+    window.initSelect2Lookup = function (selector) {
         $(selector).each(function () {
             const $el = $(this);
             const lookupType = $el.data('type');
@@ -213,6 +217,7 @@
         });
     }
 
+    // --- Execute on initial Load ---
     $(document).ready(function () {
         initUserDataTable();
         initSelect2Lookup('.select2-lookup');
@@ -259,7 +264,7 @@
     function openAddModal() {
         $('#addUserForm')[0].reset();
         let $select = $('#add_ddlStatus');
-        $select.empty().append(new Option("Entered", 1, true, true)).trigger('change');
+        $select.empty().append(new Option("Entered", 10, true, true)).trigger('change');
         $('#addUserModal').modal('show');
     }
 
@@ -268,7 +273,7 @@
             username: $('#add_txtUsername').val(),
             full_name: $('#add_txtFullName').val(),
             password: $('#add_txtPassword').val(),
-            status_id: parseInt($('#add_ddlStatus').val()) || 1
+            status_id: parseInt($('#add_ddlStatus').val())
         };
         performAction("{% url 'core_app:add_user' %}", payload, '#btnCreateUser', '#addUserModal');
     }
