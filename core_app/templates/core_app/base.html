@@ -258,6 +258,7 @@
         }
 
         $(document).ready(function () {
+            console.log("🚀 ERP Base: Initialized.");
             $.ajaxSetup({ cache: false });
 
             $(document).ajaxStart(function () { $('#global-loader').css('display', 'flex'); });
@@ -268,6 +269,7 @@
                 let url = $(this).attr('href');
                 if (!url || url === '#' || url.includes('logout')) return;
 
+                console.log("📂 AJAX: Loading -> " + url);
                 $('.ajax-link').removeClass('active');
                 $(this).addClass('active');
 
@@ -276,20 +278,45 @@
                     type: 'GET',
                     headers: { 'X-Requested-With': 'XMLHttpRequest' },
                     success: function (response) {
-                        let content = (typeof response === 'object' && response.html) ? response.html : response;
-                        $('#main-content-area').html(content);
+                        let htmlContent = (typeof response === 'object' && response.html) ? response.html : response;
+
+                        // 1. Cleanup DataTables
+                        if ($.fn.DataTable.isDataTable('.table')) {
+                            $('.table').DataTable().destroy();
+                        }
+
+                        // 2. Wrap content to handle scripts manually and avoid re-declaration errors
+                        let $html = $('<div>').append($.parseHTML(htmlContent, document, true));
+
+                        // Remove scripts from HTML before injecting so they don't run twice
+                        let scripts = [];
+                        $html.find('script').each(function () {
+                            scripts.push($(this).text());
+                            $(this).remove();
+                        });
+
+                        $('#main-content-area').html($html.html());
                         window.history.pushState({}, "", url);
 
-                        // Grid Initialization Logic
-                        if (typeof initUserDataTable === "function") {
-                            setTimeout(initUserDataTable, 50);
-                        }
-                        if (typeof initDataTable === "function") {
-                            setTimeout(initDataTable, 50);
-                        }
-                        if (typeof initSelect2Lookup === "function") {
-                            initSelect2Lookup('.select2-lookup');
-                        }
+                        // 3. Execute scripts with a try-catch to ignore re-declaration errors
+                        scripts.forEach(function (code) {
+                            try {
+                                // Wrapping in a block {} to give const/let a local scope
+                                $.globalEval("{ " + code + " }");
+                            } catch (err) {
+                                console.warn("⚠️ Script Note:", err.message);
+                            }
+                        });
+
+                        // 4. Trigger Initializers
+                        setTimeout(function () {
+                            console.log("⚙️ Re-initializing components...");
+                            $(document).trigger('pageUpdated');
+                            if (typeof window.initCashDataTable === "function") window.initCashDataTable();
+                            if (typeof window.initUserDataTable === "function") window.initUserDataTable();
+                            if (typeof window.initDataTable === "function") window.initDataTable();
+                            if ($('.select2-lookup').length) $('.select2-lookup').select2({ width: '100%' });
+                        }, 100);
                     },
                     error: function (xhr) {
                         if (xhr.status === 401) window.location.href = "{% url 'core_app:login' %}";

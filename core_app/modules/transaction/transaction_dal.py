@@ -4,40 +4,61 @@ from core_app.layers.base_dal import BaseDAL
 class TransactionDAL(BaseDAL):
     """
     Transaction-specific Data Access Layer.
-    Inherits execute_sp and execute_sp_single_row from BaseDAL.
-    Fully synced with UserDAL pattern and sp_Trans_GetList.
     """
 
     @staticmethod
     def get_cash_book_data(service_id, from_date, to_date, search_term=""):
-        """
-        Fetches transactions for the Cash Book using the new sp_Trans_GetList.
-        Parameters: @ServiceID, @FromDate, @ToDate, @SearchTerm
-        """
         params = [service_id, from_date, to_date, search_term]
-        # Calling the SP you provided earlier
         return BaseDAL.execute_sp("sp_Trans_GetList", params)
 
     @staticmethod
-    def insert_cash_entry(
-        service_id, date, account_id, description, amount, created_by
-    ):
+    def insert_cash_entry(data):
         """
-        Inserts a new cash transaction.
-        Note: Ensure sp_Transactions_Insert exists in DB.
+        Calls spTransAdd with all 20 required parameters.
+        Data dictionary must contain: inuscode, invtcode, dttrdate, inaccode, indpcode,
+        vctrtitl, vctrdesc, mntramnt, incccode, inamcode, invncode, inyscode.
         """
-        params = (service_id, date, account_id, description, amount, created_by)
-        result = BaseDAL.execute_sp_single_row("sp_Transactions_Insert", params)
+        # Mapping parameters according to spTransAdd definition
+        params = [
+            data.get("inuscode"),  # @pINUSCODE
+            data.get("invtcode"),  # @pINVTCODE
+            0,  # @pBITRVNMB (BigInt - Output/Internal)
+            data.get("dttrdate"),  # @pDTTRDATE
+            data.get("inaccode"),  # @pINACCODE
+            data.get("indpcode"),  # @pINDPCODE
+            data.get("vctrtitl", ""),  # @pVCTRTITL
+            data.get("vctrdesc", ""),  # @pVCTRDESC
+            data.get("mntramnt"),  # @pMNTRAMNT
+            data.get("incccode"),  # @pINCCCODE
+            data.get("vctrinvc", ""),  # @pVCTRINVC
+            data.get("vctrchqd", ""),  # @pVCTRCHQD
+            "",  # @pVCTRMNTH (Internal)
+            data.get("inamcode"),  # @pINAMCODE
+            data.get("invncode"),  # @pINVNCODE
+            data.get("inyscode"),  # @pINYSCODE
+            0,  # @pINTRVRSN
+            0,  # @pINTRCODE (Output)
+            "",  # @pVCTRNMBR (Output)
+            0,  # @pRetVal (Output)
+        ]
 
-        if result and str(result.get("status", "")).lower() == "success":
+        # Note: execute_sp_single_row handles the execution.
+        # Ensure your BaseDAL can handle SPs with Output parameters if needed.
+        result = BaseDAL.execute_sp_single_row("spTransAdd", params)
+
+        # Checking the Return Value (101 is Success in your SP)
+        retval = result.get("pretval") if result else None
+        if retval == 101:
             return {
                 "status": "success",
                 "message": "Transaction saved successfully!",
-                "new_id": result.get("newid"),
+                "new_id": result.get("pintrcode"),
+                "voucher_no": result.get("pvctrnmbr"),
             }
 
-        error_msg = result.get("message") if result else "Failed to save transaction."
-        return {"status": "error", "message": error_msg}
+        error_map = {2002: "Insufficient Funds", 2001: "Record not added"}
+        msg = error_map.get(retval, "Failed to save transaction.")
+        return {"status": "error", "message": msg}
 
     @staticmethod
     def update_transaction(
@@ -50,10 +71,6 @@ class TransactionDAL(BaseDAL):
         version_bin,
         changed_by,
     ):
-        """
-        Updates transaction details with concurrency check.
-        @version_bin is the TIMESTAMP from SQL Server.
-        """
         params = (
             service_id,
             trans_id,
@@ -65,42 +82,28 @@ class TransactionDAL(BaseDAL):
             changed_by,
         )
         result = BaseDAL.execute_sp_single_row("sp_Transactions_Update", params)
-
         if result and str(result.get("status", "")).lower() == "success":
             return {"status": "success", "message": "Transaction updated!"}
-
-        # Concurrency handling: if DB returns a specific message
-        msg = (
-            result.get("message")
-            if result
-            else "Update failed (Concurrency or DB error)."
-        )
-        return {"status": "error", "message": msg}
+        return {
+            "status": "error",
+            "message": result.get("message") if result else "Update failed.",
+        }
 
     @staticmethod
     def delete_transaction(service_id, trans_id, version_bin, requested_by):
-        """
-        Soft deletes or cancels a transaction.
-        """
         params = (service_id, trans_id, version_bin, requested_by)
         result = BaseDAL.execute_sp_single_row("sp_Transactions_Delete", params)
-
         if result and str(result.get("status", "")).lower() == "success":
             return {"status": "success", "message": "Transaction deleted!"}
-
-        msg = result.get("message") if result else "Delete failed."
-        return {"status": "error", "message": msg}
+        return {
+            "status": "error",
+            "message": result.get("message") if result else "Delete failed.",
+        }
 
     @staticmethod
     def get_lookup_data(lookup_type, search_term=""):
-        """
-        Common lookup for transaction dropdowns (Accounts, Depts etc).
-        Returns format: [{'id': '1', 'text': 'Cash Account'}]
-        """
         params = [lookup_type, search_term]
         raw_data = BaseDAL.execute_sp("sp_Common_GetLookup", params)
-
-        # Mapping raw SQL columns to Select2 format
         return [
             {
                 "id": str(row.get("id") or row.get("ID") or ""),

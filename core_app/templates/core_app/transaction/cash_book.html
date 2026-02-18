@@ -77,20 +77,15 @@
                         <tr>
                             <td class="ps-4 text-dark fw-semibold">{{ row.dttrdate|date:"d-M-Y"|default:row.dttrdate }}
                             </td>
-
                             <td><span class="badge bg-light text-dark border">{{ row.vctrnmbr }}</span></td>
-
                             <td>
                                 <div class="fw-bold text-primary">{{ row.vcacname }}</div>
                                 <small class="text-muted">{{ row.vcvtacrn }}</small>
                             </td>
-
                             <td class="small text-muted">{{ row.vctrdesc|default:"-" }}</td>
-
                             <td class="text-end text-amount pe-3">
                                 <span class="text-dark">{{ row.mntramnt }}</span>
                             </td>
-
                             <td class="text-center pe-4">
                                 <div class="btn-group shadow-sm">
                                     <button class="btn btn-sm btn-white border" title="Edit Entry"
@@ -147,12 +142,6 @@
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'
     };
-
-    function formatHex(hex) {
-        if (!hex || hex === 'None') return "";
-        hex = hex.trim();
-        return hex.startsWith('0x') ? hex : '0x' + hex;
-    }
 
     window.initCashDataTable = function () {
         if ($.fn.DataTable.isDataTable('#cashGrid')) {
@@ -233,7 +222,7 @@
     function confirmDeleteCash() {
         const payload = {
             trans_id: parseInt($('#delete_transID').val()),
-            version_hex: formatHex($('#delete_transVersion').val())
+            version_int: parseInt($('#delete_transVersion').val()) || 0
         };
         performCashAction("{% url 'core_app:delete_transaction' %}", payload, '#btnConfirmDeleteCash', '#deleteCashConfirmModal');
     }
