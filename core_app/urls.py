@@ -31,12 +31,12 @@ urlpatterns = [
     path(
         "transaction/cash-book/",
         transaction_views.cash_book_view,
-        name="cash_book",  # 'cash_book' name reload logic ke liye zarori hai
+        name="cash_book",
     ),
     path(
         "transaction/cash-book/add/",
         transaction_views.add_cash_entry_view,
-        name="add_cash_entry",
+        name="add_transaction",  # Modal ke AJAX call (saveCashEntry) ke sath match karne ke liye update kiya
     ),
     path(
         "transaction/cash-book/update/",

@@ -12,53 +12,66 @@ class TransactionDAL(BaseDAL):
         return BaseDAL.execute_sp("sp_Trans_GetList", params)
 
     @staticmethod
-    def insert_cash_entry(data):
+    def insert_cash_entry(**kwargs):
         """
-        Calls spTransAdd with all 20 required parameters.
-        Data dictionary must contain: inuscode, invtcode, dttrdate, inaccode, indpcode,
-        vctrtitl, vctrdesc, mntramnt, incccode, inamcode, invncode, inyscode.
+        Calls spTransAdd with 20 parameters.
+        Handling potential 'None' results from BaseDAL.
         """
-        # Mapping parameters according to spTransAdd definition
         params = [
-            data.get("inuscode"),  # @pINUSCODE
-            data.get("invtcode"),  # @pINVTCODE
-            0,  # @pBITRVNMB (BigInt - Output/Internal)
-            data.get("dttrdate"),  # @pDTTRDATE
-            data.get("inaccode"),  # @pINACCODE
-            data.get("indpcode"),  # @pINDPCODE
-            data.get("vctrtitl", ""),  # @pVCTRTITL
-            data.get("vctrdesc", ""),  # @pVCTRDESC
-            data.get("mntramnt"),  # @pMNTRAMNT
-            data.get("incccode"),  # @pINCCCODE
-            data.get("vctrinvc", ""),  # @pVCTRINVC
-            data.get("vctrchqd", ""),  # @pVCTRCHQD
-            "",  # @pVCTRMNTH (Internal)
-            data.get("inamcode"),  # @pINAMCODE
-            data.get("invncode"),  # @pINVNCODE
-            data.get("inyscode"),  # @pINYSCODE
+            kwargs.get("user_code"),  # @pINUSCODE
+            kwargs.get("vt_code"),  # @pINVTCODE
+            0,  # @pBITRVNMB
+            kwargs.get("date"),  # @pDTTRDATE
+            kwargs.get("ac_code"),  # @pINACCODE
+            kwargs.get("dp_code"),  # @pINDPCODE
+            kwargs.get("title", ""),  # @pVCTRTITL
+            kwargs.get("description", ""),  # @pVCTRDESC
+            kwargs.get("amount"),  # @pMNTRAMNT
+            kwargs.get("cc_code"),  # @pINCCCODE
+            kwargs.get("invoice", ""),  # @pVCTRINVC
+            "",  # @pVCTRCHQD
+            "",  # @pVCTRMNTH
+            kwargs.get("am_code"),  # @pINAMCODE
+            0,  # @pINVNCODE
+            kwargs.get("ys_code", 10),  # @pINYSCODE
             0,  # @pINTRVRSN
             0,  # @pINTRCODE (Output)
             "",  # @pVCTRNMBR (Output)
             0,  # @pRetVal (Output)
         ]
 
-        # Note: execute_sp_single_row handles the execution.
-        # Ensure your BaseDAL can handle SPs with Output parameters if needed.
+        # Execute SP
         result = BaseDAL.execute_sp_single_row("spTransAdd", params)
 
-        # Checking the Return Value (101 is Success in your SP)
-        retval = result.get("pretval") if result else None
-        if retval == 101:
+        # Agar result None hai, to iska matlab SP ne SELECT statement execute nahi ki
+        if not result:
             return {
-                "status": "success",
-                "message": "Transaction saved successfully!",
-                "new_id": result.get("pintrcode"),
-                "voucher_no": result.get("pvctrnmbr"),
+                "status": "error",
+                "message": "Database did not return a response. Please ensure the Stored Procedure ends with a SELECT statement for output parameters.",
             }
 
-        error_map = {2002: "Insufficient Funds", 2001: "Record not added"}
-        msg = error_map.get(retval, "Failed to save transaction.")
-        return {"status": "error", "message": msg}
+        # Normalize keys to lowercase for safety
+        res_normal = {str(k).lower(): v for k, v in result.items()}
+
+        retval = res_normal.get("pretval")
+
+        if retval == 101:
+            return {
+                "status": 101,
+                "message": "Transaction saved successfully!",
+                "new_id": res_normal.get("pintrcode"),
+                "voucher_no": res_normal.get("pvctrnmbr"),
+            }
+
+        # Specific Error Mapping
+        error_map = {
+            2002: "Insufficient Funds in the selected Cost Center.",
+            2001: "The record has not been added (Database Error).",
+            2004: "User Log Failure.",
+        }
+
+        msg = error_map.get(retval, f"Failed to save transaction (Code: {retval})")
+        return {"status": retval, "message": msg}
 
     @staticmethod
     def update_transaction(

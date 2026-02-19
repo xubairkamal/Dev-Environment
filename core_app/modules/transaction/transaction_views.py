@@ -33,9 +33,9 @@ def cash_book_view(request):
     # --- Dynamic Date Handling ---
     today = date.today()
 
-    # Pehla din of current month: 2026-02-01
+    # Pehla din of current month
     default_start = today.replace(day=1).strftime("%Y-%m-%d")
-    # Akhri din of current month: 2026-02-28
+    # Akhri din of current month
     last_day = calendar.monthrange(today.year, today.month)[1]
     default_end = today.replace(day=last_day).strftime("%Y-%m-%d")
 
@@ -43,6 +43,15 @@ def cash_book_view(request):
     from_date = request.GET.get("from_date", default_start)
     to_date = request.GET.get("to_date", default_end)
     search_term = request.GET.get("q", "")
+
+    # --- DEBUGGING CONSOLE PRINTS ---
+    print("\n" + "=" * 50)
+    print("--- FRONTEND TO BLL PARAMETERS ---")
+    print(f"Service ID: {service_id}")
+    print(f"From Date:  {from_date}")
+    print(f"To Date:    {to_date}")
+    print(f"Search:     '{search_term}'")
+    print("=" * 50 + "\n")
 
     try:
         # BLL call matching sp_Trans_GetList parameters
@@ -78,23 +87,44 @@ def get_transaction_lookup_ajax(request):
 
 
 def add_cash_entry_view(request):
-    """AJAX view to create a new cash transaction."""
+    """
+    AJAX view to create a new cash transaction.
+    Mapping frontend data to spTransAdd parameters.
+    """
     if not request.session.get("user_id"):
         return JsonResponse({"success": False, "message": "Unauthorized"}, status=401)
 
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            result = TransactionBLL.create_cash_entry(
-                request.session.get("current_service_id"),
-                data.get("date"),
-                data.get("account_id"),
-                data.get("description"),
-                data.get("amount"),
-                request.session.get("user_id"),
-            )
+
+            # SP spTransAdd ke mutabiq parameters collect karna
+            params = {
+                "user_code": request.session.get("user_id"),  # @pINUSCODE
+                "vt_code": data.get("vt_code"),  # @pINVTCODE
+                "date": data.get("date"),  # @pDTTRDATE
+                "ac_code": data.get("ac_code"),  # @pINACCODE
+                "dp_code": data.get("dp_code"),  # @pINDPCODE
+                "cc_code": data.get("cc_code"),  # @pINCCCODE
+                "title": data.get("title", "ANONYMOUS"),  # @pVCTRTITL
+                "description": data.get("desc"),  # @pVCTRDESC
+                "amount": data.get("amount"),  # @pMNTRAMNT
+                "invoice": data.get("invoice", ""),  # @pVCTRINVC
+                "am_code": request.session.get(
+                    "current_service_id"
+                ),  # @pINAMCODE (Account Master)
+                "ys_code": 10,  # @pINYSCODE (Status Code)
+            }
+
+            # BLL method call
+            result = TransactionBLL.create_cash_entry(**params)
+
+            # Result handling based on SP Return Values
+            # SP returns 101 for success, 2002 for insufficient funds, etc.
             return JsonResponse(result)
+
         except Exception as e:
+            print(f"--- VIEW ERROR (Add Cash): {traceback.format_exc()} ---")
             return JsonResponse({"success": False, "message": str(e)}, status=500)
 
 
