@@ -5,66 +5,117 @@
                 <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Cash Entry</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form id="addCashForm" onsubmit="event.preventDefault(); saveCashEntry();">
+            <form id="addCashForm" onsubmit="event.preventDefault(); saveCashEntry();" novalidate>
                 <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Transaction Date</label>
-                            <input type="date" id="add_cash_date" class="form-control" required>
+                            <label class="form-label fw-semibold text-primary">Transaction Date</label>
+                            <input type="date" id="dttrdate" class="form-control border-primary" required>
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Voucher Type</label>
-                            <select id="add_cash_vtcode" class="form-select select2-lookup" data-type="voucher_types"
-                                required>
+                            <label class="form-label fw-semibold text-primary">Voucher Type</label>
+                            <select id="invtcode" class="form-select select2-lookup" data-type="voucher_types" required>
                                 <option value="">Select Voucher Type</option>
                             </select>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Department</label>
-                            <select id="add_cash_dept" class="form-select select2-lookup" data-type="departments"
-                                required>
-                                <option value="">Select Department</option>
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label fw-semibold">Cost Center</label>
-                            <select id="add_cash_cc" class="form-select select2-lookup" data-type="cost_centers"
-                                required>
+                            <label class="form-label fw-semibold text-primary">Cost Center</label>
+                            <select id="incccode" class="form-select select2-lookup" data-type="cost_centers" required>
                                 <option value="">Select Cost Center</option>
                             </select>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Account (Chart of Accounts)</label>
-                            <select id="add_cash_account" class="form-select select2-lookup" data-type="accounts"
-                                required>
+                            <label class="form-label fw-semibold text-primary">Account (COA)</label>
+                            <select id="inaccode" class="form-select select2-lookup" data-type="accounts" required>
                                 <option value="">Select Account</option>
                             </select>
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Reference Title</label>
-                            <input type="text" id="add_cash_title" class="form-control"
-                                placeholder="e.g. Utility Bill, Vendor Name">
+                            <label class="form-label fw-semibold text-primary">Department</label>
+                            <select id="indpcode" class="form-select select2-lookup" data-type="departments" required>
+                                <option value="">Select Department</option>
+                            </select>
                         </div>
 
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Invoice/Ref #</label>
-                            <input type="text" id="add_cash_invoice" class="form-control" placeholder="Optional">
+                            <label class="form-label fw-semibold text-primary">Service / Company</label>
+                            <select id="inamcode" class="form-select select2-lookup" data-type="services" disabled
+                                required>
+                                <option value="">Select Service</option>
+                            </select>
                         </div>
+
                         <div class="col-md-6">
-                            <label class="form-label fw-semibold">Amount</label>
+                            <label class="form-label fw-semibold text-primary">Transaction Status</label>
+                            <select id="inyscode" class="form-select select2-lookup" data-type="statuses" required>
+                                <option value="">Select Status</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-primary">Amount</label>
                             <div class="input-group">
-                                <span class="input-group-text">Rs.</span>
-                                <input type="number" step="0.01" id="add_cash_amount"
-                                    class="form-control fw-bold text-primary" placeholder="0.00" required>
+                                <span class="input-group-text bg-primary text-white border-primary">Rs.</span>
+                                <input type="number" step="0.01" id="mntramnt"
+                                    class="form-control border-primary fw-bold" placeholder="0.00" required>
                             </div>
                         </div>
 
                         <div class="col-md-12">
-                            <label class="form-label fw-semibold">Detailed Description</label>
-                            <textarea id="add_cash_desc" class="form-control" rows="2"
-                                placeholder="Explain the transaction..."></textarea>
+                            <label class="form-label fw-semibold text-primary">Reference Title</label>
+                            <input type="text" id="vctrtitl" class="form-control border-primary"
+                                placeholder="e.g. Utility, Vendor Payment" required>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold text-primary">Detailed Description</label>
+                            <textarea id="vctrdesc" class="form-control border-primary" rows="2"
+                                placeholder="Enter transaction details here..."></textarea>
+                        </div>
+
+                        <div class="col-12 mt-4">
+                            <hr class="text-muted">
+                            <p class="text-muted small fw-bold">SYSTEM & OPTIONAL DETAILS</p>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">Voucher Code</label>
+                            <input type="text" id="bitrvnmb" class="form-control form-control-sm"
+                                placeholder="Auto Generated" readonly>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">Voucher Number</label>
+                            <input type="text" id="vctrnmbr" class="form-control form-control-sm"
+                                placeholder="Auto Generated" readonly>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">Invoice Ref</label>
+                            <input type="text" id="vctrinvc" class="form-control form-control-sm"
+                                placeholder="Invoice #">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">Cheque Detail</label>
+                            <input type="text" id="vctrchqd" class="form-control form-control-sm"
+                                placeholder="Cheque # if any">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">Voucher Month</label>
+                            <input type="text" id="vctrmnth" class="form-control form-control-sm bg-light"
+                                placeholder="Month Name" readonly>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted">Version</label>
+                            <input type="text" id="intrvrsn" class="form-control form-control-sm bg-light" value="0"
+                                disabled>
                         </div>
                     </div>
                 </div>
@@ -80,68 +131,151 @@
 </div>
 
 <script>
+    function updateVoucherMonth(dateVal) {
+        if (dateVal) {
+            const date = new Date(dateVal);
+            const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);
+            $('#vctrmnth').val(monthName);
+        }
+    }
+
     $(document).ready(function () {
-        // Modal khulne par Select2 initialize karna aur Date set karna
+        $('#dttrdate').on('change', function () {
+            updateVoucherMonth($(this).val());
+        });
+
         $('#addCashModal').on('shown.bs.modal', function () {
-            if (!$('#add_cash_date').val()) {
+            if (!$('#dttrdate').val()) {
                 const today = new Date().toISOString().split('T')[0];
-                $('#add_cash_date').val(today);
+                $('#dttrdate').val(today);
             }
+            updateVoucherMonth($('#dttrdate').val());
 
             $('.select2-lookup').each(function () {
                 const $this = $(this);
-                const lookupType = $this.data('type');
 
-                $this.select2({
-                    dropdownParent: $('#addCashModal'),
-                    width: '100%',
-                    placeholder: 'Search...',
-                    allowClear: true,
-                    ajax: {
-                        url: "{% url 'core_app:get_transaction_lookup_ajax' %}",
-                        dataType: 'json',
-                        delay: 250,
-                        data: function (params) {
-                            return {
-                                q: params.term,
-                                type: lookupType
-                            };
-                        },
-                        processResults: function (data) {
-                            return { results: data.results };
-                        },
-                        cache: true
-                    }
-                }).on('select2:open', function (e) {
-                    // Click karte hi search box par focus set karne ke liye
-                    document.querySelector('.select2-search__field').focus();
-                });
+                if (!$this.hasClass("select2-hidden-accessible")) {
+                    // 1. Initialize Select2
+                    $this.select2({
+                        dropdownParent: $('#addCashModal'),
+                        width: '100%',
+                        placeholder: 'Search...',
+                        allowClear: true,
+                        ajax: {
+                            url: "{% url 'core_app:get_transaction_lookup_ajax' %}",
+                            dataType: 'json',
+                            delay: 250,
+                            data: params => ({ q: params.term, type: $this.data('type') }),
+                            processResults: data => ({ results: data.results }),
+                            cache: true
+                        }
+                    });
+
+                    // 2. Fix: Dropdown khultay hi search box focus ho jaye (Data populate hone mein masla nahi karega)
+                    $this.on('select2:open', function () {
+                        const searchField = document.querySelector('.select2-container--open .select2-search__field');
+                        if (searchField) {
+                            searchField.focus();
+                        }
+                    });
+
+                    // 3. Fix: Tab key se field par aatay hi dropdown auto-open ho jaye
+                    // 'focus' ki bajaye hum select2 ke container par trigger lagayenge
+                    $this.next('.select2-container').on('keydown', function (e) {
+                        // Agar Tab (9) ya koi key press ho aur select band ho
+                        if (e.which === 9 && !$this.data('select2').isOpen()) {
+                            // User aglay field par chala jayega default behavior se
+                        }
+                    });
+
+                    // Yeh part user ko click se bachata hai jab wo Tab se enter hota hai
+                    $this.on('select2:focus', function () {
+                        $(this).select2('open');
+                    });
+                }
             });
+
+            if (!$('#inyscode').val()) {
+                $('#inyscode').append(new Option("Entered", "Entered", true, true)).trigger('change');
+            }
+            if (!$('#inamcode').val()) {
+                $('#inamcode').append(new Option("Printing", "Printing", true, true)).trigger('change');
+            }
+
+            $('#dttrdate').focus();
         });
 
-        // Fix: Select2 search field focus issues on some browsers inside modals
-        $(document).on('select2:open', () => {
-            document.querySelector('.select2-search__field').focus();
+        // Error hatane ke liye jab user input kare
+        $('input, select, textarea').on('change input', function () {
+            $(this).removeClass('is-invalid');
+            if ($(this).hasClass('select2-hidden-accessible')) {
+                $(this).next('.select2-container').find('.select2-selection').css('border-color', '');
+            }
         });
     });
 
     function saveCashEntry() {
-        const formData = {
-            vt_code: $('#add_cash_vtcode').val(),
-            date: $('#add_cash_date').val(),
-            ac_code: $('#add_cash_account').val(),
-            dp_code: $('#add_cash_dept').val(),
-            cc_code: $('#add_cash_cc').val(),
-            title: $('#add_cash_title').val(),
-            desc: $('#add_cash_desc').val(),
-            amount: $('#add_cash_amount').val(),
-            invoice: $('#add_cash_invoice').val()
-        };
+        let missingFields = [];
 
-        if (!formData.vt_code || !formData.ac_code || !formData.dp_code || !formData.cc_code || !formData.amount) {
-            alert("Please fill all required fields!");
+        // Purani validation classes saaf karein
+        $('.is-invalid').removeClass('is-invalid');
+        $('.select2-selection').css('border-color', '');
+
+        // Sirf un fields ko check karein jinme 'required' attribute laga hai
+        $('#addCashForm [required]').each(function () {
+            const $field = $(this);
+            const val = $field.val();
+            const label = $field.closest('.col-md-6, .col-md-12').find('label').first().text().trim();
+
+            if (!val || val.toString().trim() === "" || val === null) {
+                missingFields.push(label);
+                $field.addClass('is-invalid');
+
+                // Select2 special handling for border
+                if ($field.hasClass('select2-hidden-accessible')) {
+                    $field.next('.select2-container').find('.select2-selection').css('border-color', '#dc3545');
+                }
+            }
+        });
+
+        // Amount zero check
+        const amountVal = parseFloat($('#mntramnt').val());
+        if (!isNaN(amountVal) && amountVal <= 0) {
+            if (!missingFields.includes("Amount")) {
+                missingFields.push("Amount (must be greater than zero)");
+                $('#mntramnt').addClass('is-invalid');
+            }
+        }
+
+        // Agar fields missing hain to alert dikhao
+        if (missingFields.length > 0) {
+            let errorMsg = "Please provide the following missing information:\n\n";
+            missingFields.forEach((field, index) => {
+                errorMsg += (index + 1) + ". " + field + "\n";
+            });
+            alert(errorMsg);
             return;
         }
+
+        // Data Prepare karein
+        const formData = {
+            invtcode: $('#invtcode').val(),
+            dttrdate: $('#dttrdate').val(),
+            inaccode: $('#inaccode').val(),
+            indpcode: $('#indpcode').val(),
+            incccode: $('#incccode').val(),
+            vctrtitl: $('#vctrtitl').val(),
+            vctrdesc: $('#vctrdesc').val(),
+            mntramnt: $('#mntramnt').val(),
+            vctrinvc: $('#vctrinvc').val(),
+            inamcode: $('#inamcode').val(),
+            inyscode: $('#inyscode').val(),
+            vctrnmbr: $('#vctrnmbr').val(),
+            bitrvnmb: $('#bitrvnmb').val(),
+            vctrchqd: $('#vctrchqd').val(),
+            vctrmnth: $('#vctrmnth').val(),
+            intrvrsn: $('#intrvrsn').val()
+        };
 
         $('#btnSaveCash').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Saving...');
 
@@ -153,21 +287,15 @@
             headers: { 'X-CSRFToken': '{{ csrf_token }}' },
             success: function (response) {
                 if (response.status === 101) {
-                    alert("Success: " + response.message + "\nVoucher No: " + response.voucher_no);
                     $('#addCashModal').modal('hide');
-                    $('#addCashForm')[0].reset();
-                    $('.select2-lookup').val(null).trigger('change');
-                    if (typeof window.initCashDataTable === "function") window.initCashDataTable();
-                } else if (response.status === 2002) {
-                    alert("❌ Insufficient Funds: " + response.message);
+                    location.reload();
                 } else {
-                    alert("⚠️ Error: " + response.message);
+                    alert("Error: " + response.message);
+                    $('#btnSaveCash').prop('disabled', false).html('<i class="bi bi-save me-1"></i> Save Transaction');
                 }
             },
             error: function () {
                 alert("Critical Error: Could not connect to server.");
-            },
-            complete: function () {
                 $('#btnSaveCash').prop('disabled', false).html('<i class="bi bi-save me-1"></i> Save Transaction');
             }
         });

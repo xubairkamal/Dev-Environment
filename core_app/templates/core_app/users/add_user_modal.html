@@ -1,47 +1,51 @@
-<div class="modal fade" id="addCashModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+<div class="modal fade" id="addUserModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
             <div class="modal-header bg-success text-white">
                 <h5 class="modal-title">
-                    <i class="bi bi-plus-circle-fill me-2"></i>Add New Cash Entry
+                    <i class="bi bi-person-plus-fill me-2"></i>Add New User
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
                     aria-label="Close"></button>
             </div>
 
             <div class="modal-body p-4">
-                <form id="addCashForm">
+                <form id="addUserForm" autocomplete="off">
                     <div class="row g-3">
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Transaction Date</label>
+                            <label class="form-label fw-semibold">Username</label>
                             <div class="input-group">
-                                <span class="input-group-text bg-light"><i class="bi bi-calendar-event"></i></span>
-                                <input type="date" id="add_cash_date" class="form-control" required>
+                                <span class="input-group-text bg-light"><i class="bi bi-person"></i></span>
+                                <input type="text" id="add_txtUsername" class="form-control" 
+                                    placeholder="e.g. adeel.arif" required>
                             </div>
                         </div>
 
                         <div class="col-12">
-                            <label class="form-label fw-semibold">Account / Ledger</label>
-                            <select id="add_cash_account" class="form-select select2-lookup" data-type="CASH_ACCOUNTS"
-                                data-placeholder="Search Account..." required>
+                            <label class="form-label fw-semibold">Full Name</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-card-text"></i></span>
+                                <input type="text" id="add_txtFullName" class="form-control" 
+                                    placeholder="Enter user's display name" required>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">Password</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light"><i class="bi bi-key"></i></span>
+                                <input type="password" id="add_txtPassword" class="form-control" 
+                                    placeholder="Create a secure password" required autocomplete="new-password">
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label fw-semibold">User Status</label>
+                            <select id="add_ddlStatus" class="form-select select2-lookup" data-type="status"
+                                data-placeholder="Select Status" required style="width: 100%;">
                                 <option value=""></option>
                             </select>
-                            <div class="form-text small text-muted">Select the account for this transaction.</div>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Amount</label>
-                            <div class="input-group">
-                                <span class="input-group-text bg-light fw-bold">Rs.</span>
-                                <input type="number" id="add_cash_amount" class="form-control fw-bold text-success"
-                                    placeholder="0.00" step="0.01" min="1" required>
-                            </div>
-                        </div>
-
-                        <div class="col-12">
-                            <label class="form-label fw-semibold">Description / Remarks</label>
-                            <textarea id="add_cash_desc" class="form-control" rows="3"
-                                placeholder="Enter transaction details..."></textarea>
+                            <div class="form-text small text-muted">Initial status for this user account.</div>
                         </div>
                     </div>
                 </form>
@@ -49,9 +53,9 @@
 
             <div class="modal-footer bg-light border-top-0">
                 <button type="button" class="btn btn-white border px-4" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-success px-4 d-flex align-items-center gap-2" id="btnSaveCash"
-                    onclick="saveCashEntry()">
-                    <i class="bi bi-check-lg"></i> <span>Save Transaction</span>
+                <button type="button" class="btn btn-success px-4 d-flex align-items-center gap-2" id="btnCreateUser"
+                    onclick="createUser()">
+                    <i class="bi bi-check-lg"></i> <span>Save User Account</span>
                 </button>
             </div>
         </div>

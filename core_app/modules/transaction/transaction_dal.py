@@ -4,6 +4,7 @@ from core_app.layers.base_dal import BaseDAL
 class TransactionDAL(BaseDAL):
     """
     Transaction-specific Data Access Layer.
+    Using exact SP field names for parameter mapping.
     """
 
     @staticmethod
@@ -15,44 +16,37 @@ class TransactionDAL(BaseDAL):
     def insert_cash_entry(**kwargs):
         """
         Calls spTransAdd with 20 parameters.
-        Handling potential 'None' results from BaseDAL.
+        Mapping using exact SP field names provided.
         """
         params = [
-            kwargs.get("user_code"),  # @pINUSCODE
-            kwargs.get("vt_code"),  # @pINVTCODE
-            0,  # @pBITRVNMB
-            kwargs.get("date"),  # @pDTTRDATE
-            kwargs.get("ac_code"),  # @pINACCODE
-            kwargs.get("dp_code"),  # @pINDPCODE
-            kwargs.get("title", ""),  # @pVCTRTITL
-            kwargs.get("description", ""),  # @pVCTRDESC
-            kwargs.get("amount"),  # @pMNTRAMNT
-            kwargs.get("cc_code"),  # @pINCCCODE
-            kwargs.get("invoice", ""),  # @pVCTRINVC
-            "",  # @pVCTRCHQD
-            "",  # @pVCTRMNTH
-            kwargs.get("am_code"),  # @pINAMCODE
-            0,  # @pINVNCODE
-            kwargs.get("ys_code", 10),  # @pINYSCODE
-            0,  # @pINTRVRSN
+            kwargs.get("inuscode"),  # @pINUSCODE (From Session)
+            kwargs.get("invtcode"),  # @pINVTCODE
+            kwargs.get("bitrvnmb", 0),  # @pBITRVNMB
+            kwargs.get("dttrdate"),  # @pDTTRDATE
+            kwargs.get("inaccode"),  # @pINACCODE
+            kwargs.get("indpcode"),  # @pINDPCODE
+            kwargs.get("vctrtitl"),  # @pVCTRTITL
+            kwargs.get("vctrdesc"),  # @pVCTRDESC
+            kwargs.get("mntramnt"),  # @pMNTRAMNT
+            kwargs.get("incccode"),  # @pINCCCODE
+            kwargs.get("vctrinvc"),  # @pVCTRINVC
+            kwargs.get("vctrchqd"),  # @pVCTRCHQD
+            kwargs.get("vctrmnth"),  # @pVCTRMNTH
+            kwargs.get("inamcode"),  # @pINAMCODE
+            0,  # @pINVNCODE (Default 0)
+            kwargs.get("inyscode"),  # @pINYSCODE
+            0,  # @pINTRVRSN (New Entry is 0)
             0,  # @pINTRCODE (Output)
             "",  # @pVCTRNMBR (Output)
             0,  # @pRetVal (Output)
         ]
 
-        # Execute SP
         result = BaseDAL.execute_sp_single_row("spTransAdd", params)
-
-        # Agar result None hai, to iska matlab SP ne SELECT statement execute nahi ki
         if not result:
-            return {
-                "status": "error",
-                "message": "Database did not return a response. Please ensure the Stored Procedure ends with a SELECT statement for output parameters.",
-            }
+            return {"status": "error", "message": "No response from DB."}
 
-        # Normalize keys to lowercase for safety
+        # Normalize keys for output
         res_normal = {str(k).lower(): v for k, v in result.items()}
-
         retval = res_normal.get("pretval")
 
         if retval == 101:
@@ -63,51 +57,82 @@ class TransactionDAL(BaseDAL):
                 "voucher_no": res_normal.get("pvctrnmbr"),
             }
 
-        # Specific Error Mapping
         error_map = {
-            2002: "Insufficient Funds in the selected Cost Center.",
-            2001: "The record has not been added (Database Error).",
-            2004: "User Log Failure.",
+            2002: "Insufficient Funds.",
+            2001: "Record not added.",
+            2004: "Log Failure.",
         }
-
-        msg = error_map.get(retval, f"Failed to save transaction (Code: {retval})")
-        return {"status": retval, "message": msg}
+        return {"status": retval, "message": error_map.get(retval, f"Failed: {retval}")}
 
     @staticmethod
-    def update_transaction(
-        service_id,
-        trans_id,
-        date,
-        account_id,
-        description,
-        amount,
-        version_bin,
-        changed_by,
-    ):
-        params = (
-            service_id,
-            trans_id,
-            date,
-            account_id,
-            description,
-            amount,
-            version_bin,
-            changed_by,
-        )
-        result = BaseDAL.execute_sp_single_row("sp_Transactions_Update", params)
-        if result and str(result.get("status", "")).lower() == "success":
-            return {"status": "success", "message": "Transaction updated!"}
+    def update_transaction(**kwargs):
+        """
+        Calls spTransEdit with 20 parameters.
+        Standardized return value handling (like insert_cash_entry).
+        """
+        params = [
+            kwargs.get("inuscode"),  # @pINUSCODE
+            kwargs.get("intrcode"),  # @pINTRCODE
+            kwargs.get("invtcode"),  # @pINVTCODE
+            kwargs.get("vctrnmbr"),  # @pVCTRNMBR
+            kwargs.get("bitrvnmb"),  # @pBITRVNMB
+            kwargs.get("dttrdate"),  # @pDTTRDATE
+            kwargs.get("inaccode"),  # @pINACCODE
+            kwargs.get("indpcode"),  # @pINDPCODE
+            kwargs.get("vctrtitl"),  # @pVCTRTITL
+            kwargs.get("vctrdesc"),  # @pVCTRDESC
+            kwargs.get("mntramnt"),  # @pMNTRAMNT
+            kwargs.get("incccode"),  # @pINCCCODE
+            kwargs.get("vctrinvc"),  # @pVCTRINVC
+            kwargs.get("vctrchqd"),  # @pVCTRCHQD
+            kwargs.get("vctrmnth"),  # @pVCTRMNTH
+            kwargs.get("inamcode"),  # @pINAMCODE
+            0,  # @pINVNCODE
+            kwargs.get("inyscode"),  # @pINYSCODE
+            kwargs.get("intrvrsn"),  # @pINTRVRSN
+            0,  # @pRetVal (Output)
+        ]
+
+        # SQL Server execution
+        result = BaseDAL.execute_sp_single_row("spTransEdit", params)
+
+        if not result:
+            return {
+                "status": "error",
+                "message": "No response from DB during update.",
+            }
+
+        # Normalize keys for output (consistent with insert method)
+        res_normal = {str(k).lower(): v for k, v in result.items()}
+        retval = res_normal.get("pretval")
+
+        # Success handling
+        if retval == 101:
+            return {"status": 101, "message": "Record modified successfully."}
+
+        # Error Mapping matching the Stored Procedure logic
+        error_map = {
+            2001: "Record not found or modified.",
+            2002: "Insufficient Funds for this update.",
+            2003: "Concurrency Error: Another user has modified this record. Please refresh.",
+            2004: "Security Error: User log failure.",
+        }
+
         return {
-            "status": "error",
-            "message": result.get("message") if result else "Update failed.",
+            "status": retval,
+            "message": error_map.get(retval, f"Update failed with code: {retval}"),
         }
 
     @staticmethod
     def delete_transaction(service_id, trans_id, version_bin, requested_by):
+        # Note: If delete also needs exact SP field names in a specific SP,
+        # we can adjust the params list accordingly.
         params = (service_id, trans_id, version_bin, requested_by)
         result = BaseDAL.execute_sp_single_row("sp_Transactions_Delete", params)
+
         if result and str(result.get("status", "")).lower() == "success":
             return {"status": "success", "message": "Transaction deleted!"}
+
         return {
             "status": "error",
             "message": result.get("message") if result else "Delete failed.",

@@ -44,15 +44,6 @@ def cash_book_view(request):
     to_date = request.GET.get("to_date", default_end)
     search_term = request.GET.get("q", "")
 
-    # --- DEBUGGING CONSOLE PRINTS ---
-    print("\n" + "=" * 50)
-    print("--- FRONTEND TO BLL PARAMETERS ---")
-    print(f"Service ID: {service_id}")
-    print(f"From Date:  {from_date}")
-    print(f"To Date:    {to_date}")
-    print(f"Search:     '{search_term}'")
-    print("=" * 50 + "\n")
-
     try:
         # BLL call matching sp_Trans_GetList parameters
         transactions_data = TransactionBLL.get_cash_book_list(
@@ -89,7 +80,7 @@ def get_transaction_lookup_ajax(request):
 def add_cash_entry_view(request):
     """
     AJAX view to create a new cash transaction.
-    Mapping frontend data to spTransAdd parameters.
+    Mapping frontend data exactly to SP/BLL parameter names.
     """
     if not request.session.get("user_id"):
         return JsonResponse({"success": False, "message": "Unauthorized"}, status=401)
@@ -98,29 +89,26 @@ def add_cash_entry_view(request):
         try:
             data = json.loads(request.body)
 
-            # SP spTransAdd ke mutabiq parameters collect karna
+            # Exact Mapping to BLL 'required_fields' and SP parameters
             params = {
-                "user_code": request.session.get("user_id"),  # @pINUSCODE
-                "vt_code": data.get("vt_code"),  # @pINVTCODE
-                "date": data.get("date"),  # @pDTTRDATE
-                "ac_code": data.get("ac_code"),  # @pINACCODE
-                "dp_code": data.get("dp_code"),  # @pINDPCODE
-                "cc_code": data.get("cc_code"),  # @pINCCCODE
-                "title": data.get("title", "ANONYMOUS"),  # @pVCTRTITL
-                "description": data.get("desc"),  # @pVCTRDESC
-                "amount": data.get("amount"),  # @pMNTRAMNT
-                "invoice": data.get("invoice", ""),  # @pVCTRINVC
-                "am_code": request.session.get(
-                    "current_service_id"
-                ),  # @pINAMCODE (Account Master)
-                "ys_code": 10,  # @pINYSCODE (Status Code)
+                "inuscode": request.session.get("user_id"),  # @pINUSCODE
+                "invtcode": data.get("invtcode"),  # @pINVTCODE
+                "dttrdate": data.get("dttrdate"),  # @pDTTRDATE
+                "inaccode": data.get("inaccode"),  # @pINACCODE
+                "indpcode": data.get("indpcode"),  # @pINDPCODE
+                "incccode": data.get("incccode"),  # @pINCCCODE
+                "vctrtitl": data.get("vctrtitl", "ANONYMOUS"),  # @pVCTRTITL
+                "vctrdesc": data.get("vctrdesc"),  # @pVCTRDESC
+                "mntramnt": data.get("mntramnt"),  # @pMNTRAMNT
+                "vctrinvc": data.get("vctrinvc", ""),  # @pVCTRINVC
+                "inamcode": request.session.get("current_service_id"),  # @pINAMCODE
+                "inyscode": data.get("inyscode"),  # @pINYSCODE
+                "vctrchqd": data.get("vctrchqd", ""),  # @pVCTRCHQD
+                "vctrmnth": data.get("vctrmnth", ""),  # @pVCTRMNTH
             }
 
             # BLL method call
             result = TransactionBLL.create_cash_entry(**params)
-
-            # Result handling based on SP Return Values
-            # SP returns 101 for success, 2002 for insufficient funds, etc.
             return JsonResponse(result)
 
         except Exception as e:
@@ -129,25 +117,45 @@ def add_cash_entry_view(request):
 
 
 def update_transaction_view(request):
-    """AJAX view to update an existing transaction."""
+    """
+    AJAX view to update an existing transaction.
+    Mapping frontend data exactly to SP/BLL parameter names.
+    """
     if not request.session.get("user_id"):
         return JsonResponse({"success": False, "message": "Unauthorized"}, status=401)
 
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            result = TransactionBLL.update_existing_transaction(
-                request.session.get("current_service_id"),
-                data.get("trans_id"),
-                data.get("date"),
-                data.get("account_id"),
-                data.get("description"),
-                data.get("amount"),
-                data.get("version_hex"),
-                request.session.get("user_id"),
-            )
+
+            # Exact Mapping to SP parameters
+            params = {
+                "inuscode": request.session.get("user_id"),  # @pINUSCODE
+                "intrcode": data.get("intrcode"),  # @pINTRCODE
+                "invtcode": data.get("invtcode"),  # @pINVTCODE
+                "vctrnmbr": data.get("vctrnmbr"),  # @pVCTRNMBR
+                "bitrvnmb": data.get("bitrvnmb"),  # @pBITRVNMB
+                "dttrdate": data.get("dttrdate"),  # @pDTTRDATE
+                "inaccode": data.get("inaccode"),  # @pINACCODE
+                "indpcode": data.get("indpcode"),  # @pINDPCODE
+                "incccode": data.get("incccode"),  # @pINCCCODE
+                "vctrtitl": data.get("vctrtitl"),  # @pVCTRTITL
+                "vctrdesc": data.get("vctrdesc"),  # @pVCTRDESC
+                "mntramnt": data.get("mntramnt"),  # @pMNTRAMNT
+                "vctrinvc": data.get("vctrinvc", ""),  # @pVCTRINVC
+                "vctrmnth": data.get("vctrmnth", ""),  # @pVCTRMNTH
+                "inamcode": request.session.get("current_service_id"),  # @pINAMCODE
+                "inyscode": data.get("inyscode"),  # @pINYSCODE
+                "intrvrsn": data.get("intrvrsn"),  # @pINTRVRSN
+                "vctrchqd": data.get("vctrchqd", ""),  # @pVCTRCHQD
+            }
+
+            # BLL method call with exact keys
+            result = TransactionBLL.update_existing_transaction(**params)
             return JsonResponse(result)
+
         except Exception as e:
+            print(f"--- VIEW ERROR (Update Transaction): {traceback.format_exc()} ---")
             return JsonResponse({"success": False, "message": str(e)}, status=500)
 
 

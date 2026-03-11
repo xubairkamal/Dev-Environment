@@ -5,6 +5,7 @@ class TransactionBLL:
     """
     Transaction operations (CRUD) management logic.
     In charge of validating financial data before passing it to TransactionDAL.
+    Using exact SP field names for consistency.
     """
 
     @staticmethod
@@ -35,9 +36,18 @@ class TransactionBLL:
     def create_cash_entry(**kwargs):
         """
         Logic for creating a new cash transaction based on spTransAdd.
+        Validates using exact SP field names.
         """
-        # 1. Basic Validation for required fields
-        required_fields = ["date", "ac_code", "amount", "dp_code", "cc_code", "vt_code"]
+        # 1. Basic Validation for required SP fields
+        # Note: 'user_code' and 'am_code' are handled at the View level from session
+        required_fields = [
+            "dttrdate",
+            "inaccode",
+            "mntramnt",
+            "indpcode",
+            "incccode",
+            "invtcode",
+        ]
         for field in required_fields:
             if not kwargs.get(field):
                 return {
@@ -46,27 +56,25 @@ class TransactionBLL:
                 }
 
         try:
-            # 2. Amount Validation & Cleaning
+            # 2. Amount Validation & Cleaning (mntramnt)
             try:
-                amount = float(kwargs.get("amount", 0))
+                amount = float(kwargs.get("mntramnt", 0))
                 if amount <= 0:
                     return {
                         "status": "error",
-                        "message": "Amount must be greater than zero!",
+                        "message": "Amount (mntramnt) must be greater than zero!",
                     }
-                kwargs["amount"] = amount  # Ensure it's a float
+                kwargs["mntramnt"] = amount  # Ensure it's a float
             except (ValueError, TypeError):
-                return {"status": "error", "message": "Invalid amount format."}
+                return {
+                    "status": "error",
+                    "message": "Invalid amount format for mntramnt.",
+                }
 
-            # 3. Date Validation (Ensure it's not empty or malformed)
-            if not kwargs.get("date"):
-                return {"status": "error", "message": "Transaction date is missing."}
-
-            # 4. Call DAL with all parameters
-            # Note: DAL handles the exact sequence for spTransAdd
+            # 3. Call DAL
             result = TransactionDAL.insert_cash_entry(**kwargs)
 
-            # 5. Handle SP Specific Business Logic Responses
+            # 4. Handle SP Specific Responses
             if not result:
                 return {
                     "status": "error",
@@ -74,21 +82,10 @@ class TransactionBLL:
                 }
 
             status_code = result.get("status")
-
             if status_code == 101:
                 result["message"] = "Transaction saved successfully."
             elif status_code == 2002:
-                result["message"] = (
-                    "Transaction Failed: Insufficient funds in the selected Cost Center."
-                )
-            elif status_code == 2001:
-                result["message"] = (
-                    "Database Error: The record could not be added to the ledger."
-                )
-            elif status_code == 2004:
-                result["message"] = (
-                    "Security Error: User log failure or unauthorized access."
-                )
+                result["message"] = "Transaction Failed: Insufficient funds."
 
             return result
 
@@ -97,37 +94,68 @@ class TransactionBLL:
             return {"status": "error", "message": f"BLL Create Error: {str(e)}"}
 
     @staticmethod
-    def update_existing_transaction(
-        service_id,
-        trans_id,
-        date,
-        account_id,
-        description,
-        amount,
-        version_hex,
-        changed_by,
-    ):
+    def update_existing_transaction(**kwargs):
         """
-        Updates an existing transaction with concurrency check.
+        Updates an existing transaction based on spTransEdit.
+        Handles validations for all SP parameters including concurrency (intrvrsn).
         """
         try:
-            # Basic validation
-            if not trans_id or float(amount) <= 0:
+            # 1. Basic Validation using SP names
+            intrcode = kwargs.get("intrcode")
+            mntramnt = kwargs.get("mntramnt")
+            intrvrsn = kwargs.get("intrvrsn")
+
+            if not intrcode:
                 return {
                     "status": "error",
-                    "message": "Invalid Transaction ID or Amount.",
+                    "message": "Transaction ID (intrcode) is required.",
                 }
 
-            return TransactionDAL.update_transaction(
-                service_id,
-                trans_id,
-                date,
-                account_id,
-                description,
-                amount,
-                version_hex,
-                changed_by,
-            )
+            if intrvrsn is None:
+                return {
+                    "status": "error",
+                    "message": "Transaction Version (intrvrsn) is required for update.",
+                }
+
+            # 2. Amount Validation (mntramnt)
+            try:
+                amt = float(mntramnt)
+                if amt <= 0:
+                    return {
+                        "status": "error",
+                        "message": "Amount (mntramnt) must be greater than zero.",
+                    }
+                kwargs["mntramnt"] = amt
+            except (ValueError, TypeError):
+                return {"status": "error", "message": "Invalid amount format."}
+
+            # 3. Call DAL for Update
+            result = TransactionDAL.update_transaction(**kwargs)
+
+            # 4. Handle SP Return Values for Update
+            if not result:
+                return {
+                    "status": "error",
+                    "message": "No response from database during update.",
+                }
+
+            status_code = result.get("status")
+
+            if status_code == 101:
+                result["message"] = "Record modified successfully."
+            elif status_code == 2001:
+                result["message"] = "Error: The record could not be modified."
+            elif status_code == 2003:
+                result["message"] = (
+                    "Conflict: Another user has modified this record. Please refresh."
+                )
+            elif status_code == 2004:
+                result["message"] = "Security Error: User log failure."
+            elif status_code == 2002:
+                result["message"] = "❌ Insufficient Funds for this update."
+
+            return result
+
         except Exception as e:
             print(f"--- BLL ERROR (Update Transaction): {str(e)} ---")
             return {"status": "error", "message": f"BLL Update Error: {str(e)}"}
