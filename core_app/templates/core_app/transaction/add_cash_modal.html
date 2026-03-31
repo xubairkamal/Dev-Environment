@@ -5,7 +5,7 @@
                 <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Add Cash Entry</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form id="addCashForm" onsubmit="event.preventDefault(); saveCashEntry();" novalidate>
+            <form id="addCashForm" novalidate>
                 <div class="modal-body p-4">
                     <div class="row g-3">
                         <div class="col-md-6">
@@ -51,7 +51,7 @@
 
                         <div class="col-md-6">
                             <label class="form-label fw-semibold text-primary">Transaction Status</label>
-                            <select id="inyscode" class="form-select select2-lookup" data-type="statuses" required>
+                            <select id="inyscode" class="form-select select2-lookup" data-type="status" required>
                                 <option value="">Select Status</option>
                             </select>
                         </div>
@@ -60,7 +60,7 @@
                             <label class="form-label fw-semibold text-primary">Amount</label>
                             <div class="input-group">
                                 <span class="input-group-text bg-primary text-white border-primary">Rs.</span>
-                                <input type="number" step="0.01" id="mntramnt"
+                                <input type="number" step="1" id="mntramnt"
                                     class="form-control border-primary fw-bold" placeholder="0.00" required>
                             </div>
                         </div>
@@ -82,16 +82,26 @@
                             <p class="text-muted small fw-bold">SYSTEM & OPTIONAL DETAILS</p>
                         </div>
 
-                        <div class="col-md-4">
-                            <label class="form-label small text-muted">Voucher Code</label>
-                            <input type="text" id="bitrvnmb" class="form-control form-control-sm"
-                                placeholder="Auto Generated" readonly>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label small text-muted">Voucher Number</label>
-                            <input type="text" id="vctrnmbr" class="form-control form-control-sm"
-                                placeholder="Auto Generated" readonly>
+                        <div class="row g-2">
+                            <div class="col-md-3">
+                                <label class="small text-muted">System Code</label>
+                                <input type="text" id="intrcode" class="form-control form-control-sm bg-light" readonly
+                                    placeholder="Auto Generated">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small text-muted">Voucher Code</label>
+                                <input type="text" id="bitrvnmb" class="form-control form-control-sm bg-light" readonly
+                                    placeholder="Auto Generated">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small text-muted">Voucher Number</label>
+                                <input type="text" id="vctrnmbr" class="form-control form-control-sm bg-light" readonly
+                                    placeholder="Auto Generated">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="small text-muted">Voucher Month</label>
+                                <input type="text" id="vctrmnth" class="form-control form-control-sm bg-light" readonly>
+                            </div>
                         </div>
 
                         <div class="col-md-4">
@@ -130,174 +140,3 @@
     </div>
 </div>
 
-<script>
-    function updateVoucherMonth(dateVal) {
-        if (dateVal) {
-            const date = new Date(dateVal);
-            const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);
-            $('#vctrmnth').val(monthName);
-        }
-    }
-
-    $(document).ready(function () {
-        $('#dttrdate').on('change', function () {
-            updateVoucherMonth($(this).val());
-        });
-
-        $('#addCashModal').on('shown.bs.modal', function () {
-            if (!$('#dttrdate').val()) {
-                const today = new Date().toISOString().split('T')[0];
-                $('#dttrdate').val(today);
-            }
-            updateVoucherMonth($('#dttrdate').val());
-
-            $('.select2-lookup').each(function () {
-                const $this = $(this);
-
-                if (!$this.hasClass("select2-hidden-accessible")) {
-                    // 1. Initialize Select2
-                    $this.select2({
-                        dropdownParent: $('#addCashModal'),
-                        width: '100%',
-                        placeholder: 'Search...',
-                        allowClear: true,
-                        ajax: {
-                            url: "{% url 'core_app:get_transaction_lookup_ajax' %}",
-                            dataType: 'json',
-                            delay: 250,
-                            data: params => ({ q: params.term, type: $this.data('type') }),
-                            processResults: data => ({ results: data.results }),
-                            cache: true
-                        }
-                    });
-
-                    // 2. Fix: Dropdown khultay hi search box focus ho jaye (Data populate hone mein masla nahi karega)
-                    $this.on('select2:open', function () {
-                        const searchField = document.querySelector('.select2-container--open .select2-search__field');
-                        if (searchField) {
-                            searchField.focus();
-                        }
-                    });
-
-                    // 3. Fix: Tab key se field par aatay hi dropdown auto-open ho jaye
-                    // 'focus' ki bajaye hum select2 ke container par trigger lagayenge
-                    $this.next('.select2-container').on('keydown', function (e) {
-                        // Agar Tab (9) ya koi key press ho aur select band ho
-                        if (e.which === 9 && !$this.data('select2').isOpen()) {
-                            // User aglay field par chala jayega default behavior se
-                        }
-                    });
-
-                    // Yeh part user ko click se bachata hai jab wo Tab se enter hota hai
-                    $this.on('select2:focus', function () {
-                        $(this).select2('open');
-                    });
-                }
-            });
-
-            if (!$('#inyscode').val()) {
-                $('#inyscode').append(new Option("Entered", "Entered", true, true)).trigger('change');
-            }
-            if (!$('#inamcode').val()) {
-                $('#inamcode').append(new Option("Printing", "Printing", true, true)).trigger('change');
-            }
-
-            $('#dttrdate').focus();
-        });
-
-        // Error hatane ke liye jab user input kare
-        $('input, select, textarea').on('change input', function () {
-            $(this).removeClass('is-invalid');
-            if ($(this).hasClass('select2-hidden-accessible')) {
-                $(this).next('.select2-container').find('.select2-selection').css('border-color', '');
-            }
-        });
-    });
-
-    function saveCashEntry() {
-        let missingFields = [];
-
-        // Purani validation classes saaf karein
-        $('.is-invalid').removeClass('is-invalid');
-        $('.select2-selection').css('border-color', '');
-
-        // Sirf un fields ko check karein jinme 'required' attribute laga hai
-        $('#addCashForm [required]').each(function () {
-            const $field = $(this);
-            const val = $field.val();
-            const label = $field.closest('.col-md-6, .col-md-12').find('label').first().text().trim();
-
-            if (!val || val.toString().trim() === "" || val === null) {
-                missingFields.push(label);
-                $field.addClass('is-invalid');
-
-                // Select2 special handling for border
-                if ($field.hasClass('select2-hidden-accessible')) {
-                    $field.next('.select2-container').find('.select2-selection').css('border-color', '#dc3545');
-                }
-            }
-        });
-
-        // Amount zero check
-        const amountVal = parseFloat($('#mntramnt').val());
-        if (!isNaN(amountVal) && amountVal <= 0) {
-            if (!missingFields.includes("Amount")) {
-                missingFields.push("Amount (must be greater than zero)");
-                $('#mntramnt').addClass('is-invalid');
-            }
-        }
-
-        // Agar fields missing hain to alert dikhao
-        if (missingFields.length > 0) {
-            let errorMsg = "Please provide the following missing information:\n\n";
-            missingFields.forEach((field, index) => {
-                errorMsg += (index + 1) + ". " + field + "\n";
-            });
-            alert(errorMsg);
-            return;
-        }
-
-        // Data Prepare karein
-        const formData = {
-            invtcode: $('#invtcode').val(),
-            dttrdate: $('#dttrdate').val(),
-            inaccode: $('#inaccode').val(),
-            indpcode: $('#indpcode').val(),
-            incccode: $('#incccode').val(),
-            vctrtitl: $('#vctrtitl').val(),
-            vctrdesc: $('#vctrdesc').val(),
-            mntramnt: $('#mntramnt').val(),
-            vctrinvc: $('#vctrinvc').val(),
-            inamcode: $('#inamcode').val(),
-            inyscode: $('#inyscode').val(),
-            vctrnmbr: $('#vctrnmbr').val(),
-            bitrvnmb: $('#bitrvnmb').val(),
-            vctrchqd: $('#vctrchqd').val(),
-            vctrmnth: $('#vctrmnth').val(),
-            intrvrsn: $('#intrvrsn').val()
-        };
-
-        $('#btnSaveCash').prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Saving...');
-
-        $.ajax({
-            url: "{% url 'core_app:add_transaction' %}",
-            type: 'POST',
-            data: JSON.stringify(formData),
-            contentType: 'application/json',
-            headers: { 'X-CSRFToken': '{{ csrf_token }}' },
-            success: function (response) {
-                if (response.status === 101) {
-                    $('#addCashModal').modal('hide');
-                    location.reload();
-                } else {
-                    alert("Error: " + response.message);
-                    $('#btnSaveCash').prop('disabled', false).html('<i class="bi bi-save me-1"></i> Save Transaction');
-                }
-            },
-            error: function () {
-                alert("Critical Error: Could not connect to server.");
-                $('#btnSaveCash').prop('disabled', false).html('<i class="bi bi-save me-1"></i> Save Transaction');
-            }
-        });
-    }
-</script>

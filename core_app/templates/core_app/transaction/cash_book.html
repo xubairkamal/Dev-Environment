@@ -46,6 +46,11 @@
         transform: translate(-50%, -50%);
         z-index: 10;
     }
+
+    /* Select2 dropdown ko modal ke upar lane ke liye */
+    .select2-container--open {
+        z-index: 9999999 !important;
+    }
 </style>
 
 <div class="container-fluid mt-2" id="main-content-area">
@@ -111,7 +116,8 @@
                                         data-vctrnmbr="{{ row.vctrnmbr }}" data-bitrvnmb="{{ row.bitrvnmb }}"
                                         data-intrvrsn="{{ row.intrvrsn }}" data-vctrchqd="{{ row.vctrchqd }}"
                                         data-mntrcbal="{{ row.mntrcbal }}" data-mntrbbal="{{ row.mntrbbal }}"
-                                        data-inamcode="{{ row.inamcode }}" data-inyscode="{{ row.inyscode }}">
+                                        data-inamcode="{{ row.inamcode }}" data-vcamdesc="{{ row.vcamdesc }}"
+                                        data-inyscode="{{ row.inyscode }}" data-vcysdesc="{{ row.vcysdesc }}">
                                         <i class="bi bi-pencil-square"></i>
                                     </button>
 
@@ -160,33 +166,28 @@
 </div>
 
 <script>
-    if (typeof $.fn !== 'undefined' && typeof $.fn.dataTable !== 'undefined') {
-        $.fn.dataTable.ext.errMode = 'none';
-    }
-
+    // 1. AJAX Headers & Initialization
     var ajaxHeaders = {
         'X-CSRFToken': '{{ csrf_token }}',
         'Content-Type': 'application/json',
         'X-Requested-With': 'XMLHttpRequest'
     };
 
-    function initCashDataTable() {
-        if (typeof $.fn.DataTable === 'undefined') return;
-
-        if ($.fn.DataTable.isDataTable('#cashGrid')) {
-            $('#cashGrid').DataTable().destroy();
+    // Helper function to update month name based on date
+    function updateVoucherMonth(modalSelector, dateVal) {
+        if (dateVal) {
+            const date = new Date(dateVal);
+            const monthName = new Intl.DateTimeFormat('en-US', { month: 'long' }).format(date);
+            $(modalSelector + ' #vctrmnth').val(monthName);
         }
+    }
 
+    function initCashDataTable() {
+        if ($.fn.DataTable.isDataTable('#cashGrid')) { $('#cashGrid').DataTable().destroy(); }
         if ($('#cashTableBody tr.no-records-row').length > 0) return;
-
         $('#cashGrid').DataTable({
-            "stateSave": true,
-            "pageLength": 15,
-            "order": [[0, "desc"]],
-            "language": {
-                "search": "",
-                "searchPlaceholder": "Search transactions..."
-            },
+            "stateSave": true, "pageLength": 15, "order": [[0, "desc"]],
+            "language": { "search": "", "searchPlaceholder": "Search..." },
             "columnDefs": [{ "orderable": false, "targets": 5 }]
         });
     }
@@ -195,20 +196,45 @@
         var fromDate = $('#filter_from_date').val();
         var toDate = $('#filter_to_date').val();
 
+        $('#cashGridContainer').css('opacity', '0.5');
         $('#table-loader').show();
-        $('#cashGridContainer').css('opacity', '0.3');
 
         $.ajax({
             url: window.location.pathname,
-            data: { from_date: fromDate, to_date: toDate },
-            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            data: { from_date: fromDate, to_date: toDate, '_': new Date().getTime() },
             success: function (html) {
-                var newRows = $(html).find('#cashTableBody').html();
-                $('#cashTableBody').html(newRows);
-                initCashDataTable();
+                // Parser se pehle check karein ke response khali to nahi
+                if (!html || html.trim() === "") {
+                    console.error("Empty response from server");
+                    return;
+                }
+
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+                var newBodyElement = doc.getElementById('cashTableBody');
+
+                if (newBodyElement) {
+                    var newTableBody = newBodyElement.innerHTML;
+
+                    // DataTable cleanup
+                    if ($.fn.DataTable.isDataTable('#cashGrid')) {
+                        $('#cashGrid').DataTable().destroy();
+                    }
+
+                    // UI Update
+                    $('#cashTableBody').html(newTableBody);
+                    initCashDataTable();
+
+                    console.log("Grid Refreshed Successfully.");
+                } else {
+                    // Agar ID na mile toh poora page reload kar dein fallback ke taur par
+                    console.warn("Target element #cashTableBody not found in response. Falling back to full reload.");
+                    window.location.reload();
+                }
             },
-            error: function () {
-                alert("Error loading data.");
+            error: function (xhr) {
+                console.error("AJAX Error:", xhr.status, xhr.statusText);
+                alert("Connection error. Please refresh manually.");
             },
             complete: function () {
                 $('#table-loader').hide();
@@ -217,104 +243,203 @@
         });
     }
 
-    $(document).on('click', '.btn-edit-cash', function (e) {
-        e.preventDefault();
-        const btn = $(this);
+    // 3. Advanced Select2 Setup (Including Focus & Tab Logic)
+    function initSelect2Lookups(modalSelector) {
+        $(modalSelector + ' .select2-lookup, ' + modalSelector + ' .select2-lookup-edit').each(function () {
+            const $this = $(this);
+            // Pehle se initialized hai toh destroy karke re-init karein taake fresh rahe
+            if ($this.hasClass("select2-hidden-accessible")) {
+                $this.select2('destroy');
+            }
 
+            $this.select2({
+                dropdownParent: $(modalSelector),
+                width: '100%',
+                placeholder: 'Search...',
+                allowClear: true,
+                ajax: {
+                    url: "{% url 'core_app:get_transaction_lookup_ajax' %}",
+                    dataType: 'json',
+                    delay: 250,
+                    data: params => ({ q: params.term, type: $this.data('type') }),
+                    processResults: data => ({ results: data.results }),
+                    cache: true
+                }
+            });
 
-        const data = {
-            intrcode: btn.data('intrcode'),
-            invtcode: btn.data('invtcode'),
-            intrvrsn: btn.data('intrvrsn'), // Yeh ab refresh ke baad naya version uthayega
-            inamcode: btn.data('inamcode'),
-            inyscode: btn.data('inyscode'),
-            vcvtdesc: btn.data('vcvtdesc'),
-            vctrnmbr: btn.data('vctrnmbr'),
-            bitrvnmb: btn.data('bitrvnmb'),
-            dttrdate: btn.data('dttrdate'),
-            inaccode: btn.data('inaccode'),
-            vcacname: btn.data('vcacname'),
-            vctrtitl: btn.data('vctrtitl'),
-            indpcode: btn.data('indpcode'),
-            vcdpdesc: btn.data('vcdpdesc'),
-            incccode: btn.data('incccode'),
-            vcccdesc: btn.data('vcccdesc'),
-            vctrdesc: btn.data('vctrdesc'),
-            mntramnt: btn.data('mntramnt'),
-            vctrinvc: btn.data('vctrinvc'),
-            vctrchqd: btn.data('vctrchqd')
-        };
-        if (typeof openEditCashModal === 'function') {
-            openEditCashModal(data);
+            // Focus search box on open
+            $this.on('select2:open', function () {
+                setTimeout(() => {
+                    const searchField = document.querySelector('.select2-container--open .select2-search__field');
+                    if (searchField) { searchField.focus(); }
+                }, 10);
+            });
+        });
+    }
+
+    // Foolproof approach for AJAX auto-selection
+    function setSelect2Value(selector, id, text) {
+        const $el = $(selector);
+        if (!id) return; // Agar ID nahi hai toh kuch na karein
+
+        // Naya option create karke append karna zaroori hai AJAX dropdowns ke liye
+        if ($el.find("option[value='" + id + "']").length === 0) {
+            const newOption = new Option(text || id, id, true, true);
+            $el.append(newOption).trigger('change');
+        } else {
+            $el.val(id).trigger('change');
         }
-    });
+    }
 
+    // 4. Main Event Handlers
     $(document).ready(function () {
         initCashDataTable();
-    });
 
-    function openAddCashModal() {
-        $('#addCashForm')[0].reset();
-        document.getElementById('dttrdate').valueAsDate = new Date();
-        $('#addCashModal').modal('show');
-    }
+        // Date change triggers month update
+        $(document).on('change', '#dttrdate', function () {
+            const modalId = $(this).closest('.modal').attr('id');
+            updateVoucherMonth('#' + modalId, $(this).val());
+        });
 
-    function openDeleteCashModal(intrcode, intrvrsn) {
-        $('#intrcode').val(intrcode);
-        $('#intrvrsn').val(intrvrsn);
-        $('#deleteCashConfirmModal').modal('show');
-    }
+        // --- ADD OPEN ---
+        window.openAddCashModal = function () {
+            const f = $('#addCashForm');
+            f[0].reset();
+            f.find('select').val(null).trigger('change'); // Clear all dropdowns
 
-    function confirmDeleteCash() {
-        const payload = {
-            intrcode: $('#intrcode').val(),
-            intrvrsn: $('#intrvrsn').val()
+            const today = new Date().toISOString().split('T')[0];
+            f.find('#dttrdate').val(today);
+            updateVoucherMonth('#addCashModal', today);
+            f.find('#intrvrsn').val(0);
+
+            // Modal show karein
+            $('#addCashModal').modal('show');
+
+            // Foolproof: Jab modal mukammal open ho jaye (animation khatam ho), tab DD initialize karein
+            $('#addCashModal').off('shown.bs.modal').on('shown.bs.modal', function () {
+                initSelect2Lookups('#addCashModal');
+
+                // Auto-set default values (Entered & Printing)
+                // Note: Agar ye AJAX dropdowns hain, toh text aur ID dono dein
+                setSelect2Value('#addCashForm #inyscode', 'Entered', 'Entered');
+                setSelect2Value('#addCashForm #inamcode', 'Printing', 'Printing');
+
+                setTimeout(() => { f.find('#dttrdate').focus(); }, 100);
+            });
         };
 
-        const $btn = $('#btnConfirmDeleteCash');
-        $btn.prop('disabled', true).text('...');
-
-        $.ajax({
-            url: "{% url 'core_app:delete_transaction' %}",
-            type: 'POST',
-            data: JSON.stringify(payload),
-            headers: ajaxHeaders,
-            success: function (res) {
-                $('#deleteCashConfirmModal').modal('hide');
-                reloadCashTable();
-            },
-            error: function () { alert("Delete failed."); },
-            complete: function () {
-                $btn.prop('disabled', false).text('Delete');
-            }
+        // --- ADD SUBMIT ---
+        $(document).off('submit', '#addCashForm').on('submit', '#addCashForm', function (e) {
+            e.preventDefault();
+            const payload = {
+                invtcode: $('#addCashForm #invtcode').val(),
+                dttrdate: $('#addCashForm #dttrdate').val(),
+                inaccode: $('#addCashForm #inaccode').val(),
+                indpcode: $('#addCashForm #indpcode').val(),
+                incccode: $('#addCashForm #incccode').val(),
+                vctrtitl: $('#addCashForm #vctrtitl').val(),
+                vctrdesc: $('#addCashForm #vctrdesc').val(),
+                mntramnt: $('#addCashForm #mntramnt').val(),
+                vctrinvc: $('#addCashForm #vctrinvc').val(),
+                inamcode: $('#addCashForm #inamcode').val(),
+                inyscode: $('#addCashForm #inyscode').val(),
+                vctrchqd: $('#addCashForm #vctrchqd').val(),
+                vctrmnth: $('#addCashForm #vctrmnth').val(),
+                intrvrsn: 0
+            };
+            performAction("{% url 'core_app:add_transaction' %}", payload, '#btnSaveCash', '#addCashModal');
         });
-    }
 
-    function performCashAction(url, payload, btnSelector, modalSelector) {
-        const $btn = $(btnSelector);
-        const originalText = $btn.text();
-        $btn.prop('disabled', true).text('Processing...');
+        // --- EDIT OPEN ---
+        $(document).off('click', '.btn-edit-cash').on('click', '.btn-edit-cash', function () {
+            const btn = $(this); // Button element
+            const f = $('#editCashForm');
+            f[0].reset();
+
+            // jQuery .data() ki jagah .attr() use karein (Cache se bachne ke liye)
+            const intrcode = btn.attr('data-intrcode');
+            const intrvrsn = btn.attr('data-intrvrsn');
+            const dttrdate = btn.attr('data-dttrdate');
+
+            f.find('#intrcode').val(intrcode);
+            f.find('#intrvrsn').val(intrvrsn);
+            f.find('#dttrdate').val(dttrdate);
+            f.find('#mntramnt').val(btn.attr('data-mntramnt'));
+            f.find('#vctrtitl').val(btn.attr('data-vctrtitl'));
+            f.find('#vctrdesc').val(btn.attr('data-vctrdesc'));
+            f.find('#vctrinvc').val(btn.attr('data-vctrinvc'));
+            f.find('#vctrchqd').val(btn.attr('data-vctrchqd'));
+            f.find('#vctrnmbr').val(btn.attr('data-vctrnmbr'));
+            f.find('#bitrvnmb').val(btn.attr('data-bitrvnmb'));
+            f.find('#inamcode').val(btn.attr('data-inamcode'));
+            f.find('#inyscode').val(btn.attr('data-inyscode'));
+
+            console.log("Fresh Version from Attribute: ", intrvrsn);
+
+            updateVoucherMonth('#editCashModal', dttrdate);
+            initSelect2Lookups('#editCashModal');
+
+            setTimeout(() => {
+                setSelect2Value('#editCashForm #invtcode', btn.attr('data-invtcode'), btn.attr('data-vcvtdesc'));
+                setSelect2Value('#editCashForm #inaccode', btn.attr('data-inaccode'), btn.attr('data-vcacname'));
+                setSelect2Value('#editCashForm #indpcode', btn.attr('data-indpcode'), btn.attr('data-vcdpdesc'));
+                setSelect2Value('#editCashForm #incccode', btn.attr('data-incccode'), btn.attr('data-vcccdesc'));
+                setSelect2Value('#editCashForm #inamcode', btn.attr('data-inamcode'), btn.attr('data-vcamdesc'));
+                setSelect2Value('#editCashForm #inyscode', btn.attr('data-inyscode'), btn.attr('data-vcysdesc'));
+            }, 100);
+
+            $('#editCashModal').modal('show');
+        });
+
+        // --- EDIT SUBMIT ---
+        $(document).off('submit', '#editCashForm').on('submit', '#editCashForm', function (e) {
+            e.preventDefault();
+            const f = $('#editCashForm');
+            const payload = {
+                intrcode: f.find('#intrcode').val(),
+                intrvrsn: f.find('#intrvrsn').val(),
+                invtcode: f.find('#invtcode').val(),
+                dttrdate: f.find('#dttrdate').val(),
+                inaccode: f.find('#inaccode').val(),
+                indpcode: f.find('#indpcode').val(),
+                incccode: f.find('#incccode').val(),
+                vctrtitl: f.find('#vctrtitl').val(),
+                vctrdesc: f.find('#vctrdesc').val(),
+                mntramnt: f.find('#mntramnt').val(),
+                vctrinvc: f.find('#vctrinvc').val(),
+                vctrchqd: f.find('#vctrchqd').val(),
+                vctrnmbr: f.find('#vctrnmbr').val(),
+                bitrvnmb: f.find('#bitrvnmb').val(),
+                inamcode: f.find('#inamcode').val(),
+                inyscode: f.find('#inyscode').val(),
+                vctrmnth: f.find('#vctrmnth').val()
+            };
+
+            console.log("edit submit parameters (version):", payload.intrvrsn);
+
+            performAction("{% url 'core_app:update_transaction' %}", payload, '#btnUpdateCash', '#editCashModal');
+        });
+    });
+
+    // Helper Action for Post Requests
+    function performAction(url, payload, btn, modal) {
+        const $btn = $(btn);
+        const originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Processing...');
 
         $.ajax({
-            url: url,
-            type: 'POST',
-            data: JSON.stringify(payload),
-            headers: ajaxHeaders,
+            url: url, type: 'POST', data: JSON.stringify(payload), headers: ajaxHeaders,
             success: function (res) {
                 if (res.status === 101 || res.success) {
-                    $(modalSelector).modal('hide');
+                    $(modal).modal('hide');
+
                     reloadCashTable();
-                } else {
-                    alert(res.message || "Action failed.");
-                }
+                } else { alert("Error: " + res.message); }
             },
-            error: function (xhr) {
-                alert("System Error: " + xhr.responseText);
-            },
-            complete: function () {
-                $btn.prop('disabled', false).text(originalText);
-            }
+            error: function () { alert("Server connection failed."); },
+            complete: function () { $btn.prop('disabled', false).html(originalHtml); }
         });
     }
+
 </script>
 {% endblock %}
