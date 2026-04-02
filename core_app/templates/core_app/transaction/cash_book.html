@@ -51,6 +51,23 @@
     .select2-container--open {
         z-index: 9999999 !important;
     }
+
+    /* Search results aate waqt list ki blinking khatam karne ke liye */
+    .select2-results__options {
+        transition: none !important;
+        animation: none !important;
+    }
+
+    /* Jab results load ho rahe hon toh halka sa static placeholder rahe na ke poori list gayab ho */
+    .select2-container--default .select2-results>.select2-results__options {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+
+    /* Select2 loading spinner/text ko stable rakhne ke liye */
+    .select2-results__option--selectable {
+        transition: none !important;
+    }
 </style>
 
 <div class="container-fluid mt-2" id="main-content-area">
@@ -260,7 +277,7 @@
                 ajax: {
                     url: "{% url 'core_app:get_transaction_lookup_ajax' %}",
                     dataType: 'json',
-                    delay: 250,
+                    delay: 300,
                     data: params => ({ q: params.term, type: $this.data('type') }),
                     processResults: data => ({ results: data.results }),
                     cache: true
@@ -321,8 +338,11 @@
 
                 // Auto-set default values (Entered & Printing)
                 // Note: Agar ye AJAX dropdowns hain, toh text aur ID dono dein
-                setSelect2Value('#addCashForm #inyscode', 'Entered', 'Entered');
-                setSelect2Value('#addCashForm #inamcode', 'Printing', 'Printing');
+                setSelect2Value('#addCashForm #invtcode', '1', 'Cash Payment Voucher');
+                setSelect2Value('#addCashForm #incccode', '10', 'Fees');
+                setSelect2Value('#addCashForm #indpcode', '10', 'Administration');
+                setSelect2Value('#addCashForm #inyscode', '10', 'Entered');
+                setSelect2Value('#addCashForm #inamcode', '10', 'Islamic Sciences');
 
                 setTimeout(() => { f.find('#dttrdate').focus(); }, 100);
             });

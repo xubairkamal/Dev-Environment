@@ -1,0 +1,83 @@
+<div class="modal fade" id="addJournalModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-journal-plus me-2"></i>Add Journal Entry</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addJournalForm" novalidate>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-primary">Transaction Date</label>
+                            <input type="date" id="dtgjdate" name="dtgjdate" class="form-control border-primary"
+                                required>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-muted">Journal Number</label>
+                            <input type="text" id="vcgjnmbr" class="form-control bg-light" placeholder="Auto-generated"
+                                readonly>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Journal Title / Reference</label>
+                            <input type="text" id="vcgjtitl" name="vcgjtitl" class="form-control"
+                                placeholder="e.g. Monthly Adjustment">
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-danger">Debit Account (DR)</label>
+                            <select id="indrcode" name="indrcode" class="form-select select2-lookup" data-type="account"
+                                required>
+                                <option value="">Select Debit Account</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-success">Credit Account (CR)</label>
+                            <select id="incrcode" name="incrcode" class="form-select select2-lookup" data-type="account"
+                                required>
+                                <option value="">Select Credit Account</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Amount</label>
+                            <div class="input-group">
+                                <span class="input-group-text">Rs.</span>
+                                <input type="number" id="mngjamnt" name="mngjamnt"
+                                    class="form-control fw-bold border-secondary text-end" step="0.01"
+                                    placeholder="0.00" required>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-secondary">Department</label>
+                            <select id="indpcode" name="indpcode" class="form-select select2-lookup"
+                                data-type="department">
+                                <option value="">Select Department</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-12">
+                            <label class="form-label fw-semibold">Narration / Description</label>
+                            <textarea id="vcgjdesc" name="vcgjdesc" class="form-control" rows="3"
+                                placeholder="Enter detailed description here..." required></textarea>
+                        </div>
+
+                        <input type="hidden" id="invncode" value="0">
+                        <input type="hidden" id="inetcode" value="1">
+                        <input type="hidden" id="ingjrefr" value="0">
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-success px-4" id="btnSaveJournal">
+                        <i class="bi bi-save me-1"></i> Save Journal
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

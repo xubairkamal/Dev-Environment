@@ -2,6 +2,7 @@ from django.urls import path
 from . import views
 from core_app.modules.users import user_views
 from core_app.modules.transaction import transaction_views
+from core_app.modules.journal import journal_views
 
 app_name = "core_app"
 
@@ -52,6 +53,37 @@ urlpatterns = [
         "transaction/lookup/",
         transaction_views.get_transaction_lookup_ajax,
         name="get_transaction_lookup_ajax",
+    ),
+    # --- Transaction (General Journal) ---
+    path(
+        "transaction/journal/",
+        journal_views.journal_book_view,
+        name="journal_book",
+    ),
+    path(
+        "transaction/journal/list-ajax/",
+        journal_views.journal_list_ajax,
+        name="journal_list_ajax",
+    ),
+    path(
+        "transaction/journal/add/",
+        journal_views.add_journal_view,
+        name="add_journal",  # Modal ke AJAX call ke liye
+    ),
+    path(
+        "transaction/journal/update/",
+        journal_views.update_journal_view,
+        name="update_journal",
+    ),
+    path(
+        "transaction/journal/delete/",
+        journal_views.delete_journal_view,
+        name="delete_journal",
+    ),
+    path(
+        "transaction/journal/lookup/",
+        journal_views.get_journal_lookup_ajax,
+        name="get_journal_lookup_ajax",
     ),
     # --- Lookups & Utilities ---
     path("common/lookup/", user_views.get_lookup_ajax, name="get_lookup_ajax"),

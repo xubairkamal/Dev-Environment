@@ -1,0 +1,263 @@
+{% extends base_template %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'core_app/css/dataTables.bootstrap5.min.css' %}">
+
+<style>
+    /* Cash Book Pattern Styling */
+    .dataTables_wrapper .dataTables_paginate .paginate_button {
+        padding: 0;
+        margin-left: 2px;
+    }
+
+    .dataTables_filter input {
+        border-radius: 20px;
+        padding: 5px 15px;
+        border: 1px solid #dee2e6;
+        outline: none;
+    }
+
+    .card-body.p-0 .dataTables_wrapper {
+        padding: 1.25rem;
+    }
+
+    .table th,
+    .table td {
+        vertical-align: middle;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: rgba(0, 123, 255, 0.05);
+        transition: background-color 0.2s ease;
+    }
+
+    .text-amount {
+        font-family: 'Courier New', Courier, monospace;
+        font-weight: bold;
+    }
+
+    #table-loader {
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+    }
+</style>
+
+<div class="container-fluid py-4">
+    <div class="card shadow-sm border-0 position-relative">
+        <div id="table-loader">
+            <div class="spinner-border text-primary" role="status"></div>
+        </div>
+
+        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
+            <div>
+                <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-journal-text me-2"></i>General Journal</h5>
+                <small class="text-muted">Record non-cash adjustments and transactions</small>
+            </div>
+            <div class="d-flex gap-2">
+                <div class="input-group input-group-sm" style="width: 300px;">
+                    <span class="input-group-text bg-light">Period</span>
+                    <input type="date" id="fromDate" class="form-control" value="{{ first_day }}">
+                    <input type="date" id="toDate" class="form-control" value="{{ last_day }}">
+                </div>
+                <button class="btn btn-success btn-sm px-3 shadow-sm" onclick="openAddJournalModal()">
+                    <i class="bi bi-plus-lg me-1"></i> New Entry
+                </button>
+            </div>
+        </div>
+
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="journalTable" class="table table-hover align-middle mb-0" style="width:100%">
+                    <thead class="bg-light text-secondary">
+                        <tr>
+                            <th>Date</th>
+                            <th>Voucher #</th>
+                            <th>Debit Account</th>
+                            <th>Credit Account</th>
+                            <th class="text-end">Amount</th>
+                            <th>Description</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-center">Action</th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% include 'core_app/journal/add_journal_modal.html' %}
+{% include 'core_app/journal/edit_journal_modal.html' %}
+
+<script src="{% static 'core_app/js/jquery.dataTables.min.js' %}"></script>
+<script src="{% static 'core_app/js/dataTables.bootstrap5.min.js' %}"></script>
+
+<script>
+    let journalTable;
+    const ajaxHeaders = { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' };
+
+    $(document).ready(function () {
+        initJournalDataTable();
+
+        // Date Change Refresh
+        $('#fromDate, #toDate').on('change', function () {
+            reloadJournalTable();
+        });
+
+        // Add Form Submission (Exact DB Fields)
+        $('#addJournalForm').on('submit', function (e) {
+            e.preventDefault();
+            const f = $(this);
+            const payload = {
+                dtgjdate: f.find('#dtgjdate').val(),
+                indrcode: f.find('#indrcode').val(),
+                incrcode: f.find('#incrcode').val(),
+                indpcode: f.find('#indpcode').val(),
+                vcgjtitl: f.find('#vcgjtitl').val(),
+                vcgjdesc: f.find('#vcgjdesc').val(),
+                mngjamnt: f.find('#mngjamnt').val(),
+                vcgjmnth: f.find('#vcgjmnth').val(),
+                invncode: f.find('#invncode').val() || 0,
+                inetcode: f.find('#inetcode').val() || 1,
+                inyscode: f.find('#inyscode').val() || 10
+            };
+            performAction("{% url 'core_app:add_journal' %}", payload, '#btnSaveJournal', '#addJournalModal');
+        });
+
+        // Update Form Submission (Exact DB Fields)
+        $('#editJournalForm').on('submit', function (e) {
+            e.preventDefault();
+            const f = $(this);
+            const payload = {
+                ingjcode: f.find('#ingjcode').val(),
+                bigjvnm: f.find('#bigjvnm').val(),
+                ingjvrsn: f.find('#ingjvrsn').val(), // Concurrency Version
+                dtgjdate: f.find('#dtgjdate').val(),
+                indrcode: f.find('#indrcode').val(),
+                incrcode: f.find('#incrcode').val(),
+                indpcode: f.find('#indpcode').val(),
+                vcgjtitl: f.find('#vcgjtitl').val(),
+                vcgjdesc: f.find('#vcgjdesc').val(),
+                mngjamnt: f.find('#mngjamnt').val(),
+                vcgjmnth: f.find('#vcgjmnth').val(),
+                inyscode: f.find('#inyscode').val()
+            };
+            performAction("{% url 'core_app:update_journal' %}", payload, '#btnUpdateJournal', '#editJournalModal');
+        });
+    });
+
+    function initJournalDataTable() {
+        journalTable = $('#journalTable').DataTable({
+            processing: false, // Custom loader use kar rahe hain
+            serverSide: true,
+            pageLength: 25,
+            ajax: {
+                url: "{% url 'core_app:journal_list_ajax' %}",
+                data: function (d) {
+                    d.from_date = $('#fromDate').val();
+                    d.to_date = $('#toDate').val();
+                },
+                beforeSend: function () { $('#table-loader').show(); },
+                complete: function () { $('#table-loader').hide(); }
+            },
+            columns: [
+                { data: 'dtgjdate_disp' },
+                { data: 'vcgjnmbr', className: 'fw-bold' },
+                { data: 'vcdrname' },
+                { data: 'vccrname' },
+                {
+                    data: 'mngjamnt_disp',
+                    className: 'text-end text-amount text-dark'
+                },
+                { data: 'vcgjdesc' },
+                {
+                    data: 'vcysdesc',
+                    className: 'text-center',
+                    render: function (data) {
+                        let badge = data === 'Active' ? 'bg-light-success text-success' : 'bg-light-secondary text-muted';
+                        return `<span class="badge ${badge} border px-2">${data}</span>`;
+                    }
+                },
+                {
+                    data: null,
+                    className: 'text-center',
+                    orderable: false,
+                    render: function (data) {
+                        return `
+                            <button class="btn btn-sm btn-outline-primary border-0" onclick='fetchJournalDetail(${data.INGJCODE})'>
+                                <i class="bi bi-pencil-square"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ],
+            order: [[0, 'desc']]
+        });
+    }
+
+    function reloadJournalTable() { journalTable.ajax.reload(); }
+
+    function openAddJournalModal() {
+        const f = $('#addJournalForm');
+        f[0].reset();
+        f.find('.select2-lookup').val(null).trigger('change');
+        f.find('#dtgjdate').val(new Date().toISOString().split('T')[0]);
+        $('#addJournalModal').modal('show');
+    }
+
+    function fetchJournalDetail(id) {
+        $.get("{% url 'core_app:journal_list_ajax' %}", { id: id }, function (res) {
+            if (res.success) {
+                const d = res.data;
+                const f = $('#editJournalForm');
+                f.find('#ingjcode').val(d.INGJCODE);
+                f.find('#ingjvrsn').val(d.INGJVRSN);
+                f.find('#bigjvnm').val(d.BIGJVNM);
+                f.find('#dtgjdate').val(d.DTGJDATE);
+                f.find('#vcgjnmbr').val(d.VCGJNMBR);
+                f.find('#mngjamnt').val(d.MNGJAMNT);
+                f.find('#vcgjdesc').val(d.VCGJDESC);
+                f.find('#vcgjtitl').val(d.VCGJTITL);
+                f.find('#vcgjmnth').val(d.VCGJMNTH);
+
+                setSelect2Value(f.find('#indrcode'), d.INDRCODE, d.VCDRNAME);
+                setSelect2Value(f.find('#incrcode'), d.INCRCODE, d.VCCRNAME);
+                setSelect2Value(f.find('#indpcode'), d.INDPCODE, d.VCDPDESC);
+                setSelect2Value(f.find('#inyscode'), d.INYSCODE, d.VCYSDESC || 'Active');
+
+                $('#editJournalModal').modal('show');
+            }
+        });
+    }
+
+    function performAction(url, payload, btn, modal) {
+        const $btn = $(btn);
+        const originalHtml = $btn.html();
+        $btn.prop('disabled', true).html('<span class="spinner-border spinner-border-sm"></span> Processing...');
+
+        $.ajax({
+            url: url, type: 'POST', data: JSON.stringify(payload), headers: ajaxHeaders,
+            success: function (res) {
+                if (res.success) {
+                    $(modal).modal('hide');
+                    reloadJournalTable();
+                } else { alert("Error: " + res.message); }
+            },
+            error: function (xhr) { alert("Server Error: " + xhr.statusText); },
+            complete: function () { $btn.prop('disabled', false).html(originalHtml); }
+        });
+    }
+
+    function setSelect2Value(element, id, text) {
+        if (id) {
+            let option = new Option(text, id, true, true);
+            element.append(option).trigger('change');
+        }
+    }
+</script>
+{% endblock %}

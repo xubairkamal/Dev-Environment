@@ -141,6 +141,18 @@
     <script src="{% static 'core_app/js/select2.js' %}"></script>
 
     <script>
+        // 1. Foolproof function for AJAX dropdown selection
+        function setSelect2Value(selector, id, text) {
+            const $el = $(selector);
+            if ($el.find("option[value='" + id + "']").length === 0) {
+                // Naya option banayein aur select karein
+                const newOption = new Option(text, id, true, true);
+                $el.append(newOption).trigger('change');
+            } else {
+                $el.val(id).trigger('change');
+            }
+        }
+
         $(document).ready(function () {
             const $serviceDDL = $('#ddlService');
 
@@ -164,21 +176,25 @@
                 }
             });
 
+            // --- YAHAN VALUE SET KI GAI HAI ---
+            // Islamic Sciences (ID: 10) ko automatically select karein
+            setSelect2Value('#ddlService', '10', 'Islamic Sciences');
+
             // FIXED: Dropdown open hone par search box par focus karna
             $serviceDDL.on('select2:open', function () {
-                // Select2 ka search input dhoond kar usay focus aur typing ready karna
-                const searchField = document.querySelector('.select2-search__field');
+                const searchField = document.querySelector('.select2-container--open .select2-search__field');
                 if (searchField) {
                     searchField.focus();
                 }
             });
 
-            // Page load par automatically open aur focus
+            // Page load par automatically open aur focus (Agar aap default select kar rahe hain toh shayad iski zaroorat na paray)
             setTimeout(() => {
-                $serviceDDL.select2('open');
+                if (!$serviceDDL.val()) { // Agar kuch select nahi hai tabhi open karein
+                    $serviceDDL.select2('open');
+                }
             }, 300);
 
-            // Service select hone ke baad focus Username par jaye
             $serviceDDL.on('select2:select', function (e) {
                 $('#txtUsername').focus();
             });
