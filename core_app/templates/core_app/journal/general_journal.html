@@ -5,7 +5,6 @@
 <link rel="stylesheet" href="{% static 'core_app/css/dataTables.bootstrap5.min.css' %}">
 
 <style>
-    /* Cash Book Pattern Styling */
     .dataTables_wrapper .dataTables_paginate .paginate_button {
         padding: 0;
         margin-left: 2px;
@@ -37,6 +36,8 @@
         font-weight: bold;
     }
 
+
+    /* Loading overlay */
     #table-loader {
         display: none;
         position: absolute;
@@ -45,52 +46,131 @@
         transform: translate(-50%, -50%);
         z-index: 10;
     }
+
+    /* Select2 dropdown ko modal ke upar lane ke liye */
+    .select2-container--open {
+        z-index: 9999999 !important;
+    }
+
+    /* Search results aate waqt list ki blinking khatam karne ke liye */
+    .select2-results__options {
+        transition: none !important;
+        animation: none !important;
+    }
+
+    /* Jab results load ho rahe hon toh halka sa static placeholder rahe na ke poori list gayab ho */
+    .select2-container--default .select2-results>.select2-results__options {
+        max-height: 250px;
+        overflow-y: auto;
+    }
+
+    /* Select2 loading spinner/text ko stable rakhne ke liye */
+    .select2-results__option--selectable {
+        transition: none !important;
+    }
 </style>
 
-<div class="container-fluid py-4">
-    <div class="card shadow-sm border-0 position-relative">
-        <div id="table-loader">
-            <div class="spinner-border text-primary" role="status"></div>
-        </div>
 
-        <div class="card-header bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
-            <div>
-                <h5 class="mb-0 text-primary fw-bold"><i class="bi bi-journal-text me-2"></i>General Journal</h5>
-                <small class="text-muted">Record non-cash adjustments and transactions</small>
-            </div>
-            <div class="d-flex gap-2">
-                <div class="input-group input-group-sm" style="width: 300px;">
-                    <span class="input-group-text bg-light">Period</span>
-                    <input type="date" id="fromDate" class="form-control" value="{{ first_day }}">
-                    <input type="date" id="toDate" class="form-control" value="{{ last_day }}">
-                </div>
-                <button class="btn btn-success btn-sm px-3 shadow-sm" onclick="openAddJournalModal()">
-                    <i class="bi bi-plus-lg me-1"></i> New Entry
+
+<div class="container-fluid mt-2" id="main-content-area">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h3 class="fw-bold mb-0"><i class="bi bi-journal-text text-primary"></i> General Journal</h3>
+            <p class="text-muted small mb-0">Record non-cash adjustments and transactions.</p>
+        </div>
+        <div class="d-flex gap-2">
+            <div class="input-group input-group-sm shadow-sm">
+                <span class="input-group-text bg-white border-end-0"><i class="bi bi-calendar3"></i></span>
+                <input type="date" id="fromDate" class="form-control border-start-0" value="{{ first_day }}">
+                <input type="date" id="toDate" class="form-control" value="{{ last_day }}">
+                <button type="button" class="btn btn-primary" onclick="$('#journalTable').DataTable().ajax.reload()">
+                    <i class="bi bi-search"></i>
                 </button>
             </div>
+            <button class="btn btn-success shadow-sm d-flex align-items-center gap-2" onclick="openAddJournalModal()">
+                <i class="bi bi-plus-lg"></i> <span>Add Entry</span>
+            </button>
         </div>
-
+    </div>
+    <div class="card shadow-sm border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
                 <table id="journalTable" class="table table-hover align-middle mb-0" style="width:100%">
                     <thead class="bg-light text-secondary">
                         <tr>
-                            <th>Date</th>
+                            <th class="ps-4" style="width: 140px;">Date</th>
                             <th>Voucher #</th>
                             <th>Debit Account</th>
                             <th>Credit Account</th>
                             <th class="text-end">Amount</th>
                             <th>Description</th>
                             <th class="text-center">Status</th>
-                            <th class="text-center">Action</th>
+                            <th class="text-center pe-4" style="width: 150px;">Actions</th>
                         </tr>
                     </thead>
+                    <tbody id="journalTableBody">
+                        {% for row in transactions %}
+                        <tr>
+                            <td class="ps-4 text-dark fw-semibold">
+                                {{ row.dtgjdate_disp|default:row.dtgjdate }}
+                            </td>
+
+                            <td>
+                                <span class="badge bg-light text-dark border">{{ row.vcgjnmbr }}</span>
+                            </td>
+
+                            <td>
+                                <div class="fw-bold text-danger small">DR: {{ row.indrname }}</div>
+                                <div class="fw-bold text-success small">CR: {{ row.incrname }}</div>
+                            </td>
+
+                            <td class="text-end text-amount pe-3">
+                                <span class="text-dark fw-bold">{{ row.mngjamnt_disp|default:row.mngjamnt }}</span>
+                            </td>
+
+                            <td class="small text-muted">
+                                {{ row.vcgjdesc|default:"-" }}
+                            </td>
+
+                            <td class="text-center">
+                                <span class="badge rounded-pill bg-info text-dark" style="font-size: 0.7rem;">
+                                    {{ row.vcysdesc|default:"ENTERED" }}
+                                </span>
+                            </td>
+
+                            <td class="text-center pe-4">
+                                <div class="btn-group shadow-sm">
+                                    <button class="btn btn-sm btn-white border btn-edit-journal"
+                                        data-vcgjnmbr="{{ row.vcgjnmbr }}" data-dtgjdate="{{ row.dtgjdate }}"
+                                        data-indrcode="{{ row.indrcode }}" data-incrcode="{{ row.incrcode }}"
+                                        data-mngjamnt="{{ row.mngjamnt }}" data-indpcode="{{ row.indpcode }}"
+                                        data-vcgjtitl="{{ row.vcgjtitl }}" data-vcgjdesc="{{ row.vcgjdesc }}"
+                                        data-bigjvnm="{{ row.bigjvnm }}" data-ingjvrsn="{{ row.ingjvrsn }}"
+                                        data-inyscode="{{ row.inyscode }}">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </button>
+
+                                    <button class="btn btn-sm btn-white border" title="Delete Entry"
+                                        onclick="openDeleteJournalModal('{{ row.vcgjnmbr }}', '{{ row.ingjvrsn }}')">
+                                        <i class="bi bi-trash text-danger"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr class="no-records-row">
+                            <td colspan="8" class="text-center py-5">
+                                <i class="bi bi-journal-x fs-1 text-muted d-block mb-2"></i>
+                                <span class="text-muted">No journal entries found for this period.</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
                 </table>
             </div>
         </div>
     </div>
 </div>
-
 {% include 'core_app/journal/add_journal_modal.html' %}
 {% include 'core_app/journal/edit_journal_modal.html' %}
 
@@ -156,6 +236,7 @@
             processing: false, // Custom loader use kar rahe hain
             serverSide: true,
             pageLength: 25,
+            "language": { "search": "", "searchPlaceholder": "Search..." },
             ajax: {
                 url: "{% url 'core_app:journal_list_ajax' %}",
                 data: function (d) {
@@ -170,10 +251,7 @@
                 { data: 'vcgjnmbr', className: 'fw-bold' },
                 { data: 'vcdrname' },
                 { data: 'vccrname' },
-                {
-                    data: 'mngjamnt_disp',
-                    className: 'text-end text-amount text-dark'
-                },
+                { data: 'mngjamnt_disp' },
                 { data: 'vcgjdesc' },
                 {
                     data: 'vcysdesc',

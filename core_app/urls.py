@@ -3,6 +3,8 @@ from . import views
 from core_app.modules.users import user_views
 from core_app.modules.transaction import transaction_views
 from core_app.modules.journal import journal_views
+from core_app.modules.transaction import consolidated_cash_book_view
+
 
 app_name = "core_app"
 
@@ -53,6 +55,11 @@ urlpatterns = [
         "transaction/lookup/",
         transaction_views.get_transaction_lookup_ajax,
         name="get_transaction_lookup_ajax",
+    ),
+    path(
+        "transaction/consolidated-cash-book/",
+        consolidated_cash_book_view.consolidated_cash_book,
+        name="consolidated_cash_book",
     ),
     # --- Transaction (General Journal) ---
     path(

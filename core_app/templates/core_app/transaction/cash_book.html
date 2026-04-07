@@ -203,7 +203,7 @@
         if ($.fn.DataTable.isDataTable('#cashGrid')) { $('#cashGrid').DataTable().destroy(); }
         if ($('#cashTableBody tr.no-records-row').length > 0) return;
         $('#cashGrid').DataTable({
-            "stateSave": true, "pageLength": 15, "order": [[0, "desc"]],
+            "stateSave": true, "pageLength": 25, "order": [[0, "desc"]],
             "language": { "search": "", "searchPlaceholder": "Search..." },
             "columnDefs": [{ "orderable": false, "targets": 5 }]
         });
